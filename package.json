@@ -1,12 +1,12 @@
 {
   "name": "nine-mens-morris",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Nine Men's Morris game implementation + AI using min-max algorithm and alpha-beta pruning.",
   "main": "index.js",
   "scripts": {
     "start": "parcel index.html && parcel watch index.html",
     "build": "parcel build index.html --public-url ./",
-    "deploy": "npm run build && cd dist && git add . && npm version patch && git push"
+    "deploy": "npm run build && npm version patch  && cd dist && git add . && git commit -am 'Add files' && git push"
   },
   "keywords": [
     "nine-mens-morris",
