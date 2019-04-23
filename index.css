@@ -19,3 +19,9 @@ body {
     transform: translateX(-50%);
     margin-top: 2.5rem;
 }
+
+@media (max-width: 768px) {
+    .canvas-wrapper {
+        --boardSize: 90vw;
+    }
+}
