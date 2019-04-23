@@ -1,7 +1,21 @@
 body {
     font-family: 'Open Sans', sans-serif;
+    background: #f0f0f0;
 }
 
 .header {
     text-align: center;
+}
+
+.canvas-wrapper {
+    background: white;
+    --boardSize: 600px;
+    width: var(--boardSize);
+    height: var(--boardSize);
+    position: relative;
+
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+    margin-left: calc(50%);
+    transform: translateX(-50%);
+    margin-top: 2.5rem;
 }
