@@ -1,0 +1,20 @@
+{
+  "name": "nine-mens-morris",
+  "version": "0.0.1",
+  "description": "Nine Men's Morris game implementation + AI using min-max algorithm and alpha-beta pruning.",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel index.html && parcel watch index.html"
+  },
+  "keywords": [
+    "nine-mens-morris",
+    "ai",
+    "min-max",
+    "pwr"
+  ],
+  "author": "github.com/grudus",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.4.4"
+  }
+}
