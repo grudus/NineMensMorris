@@ -1,10 +1,12 @@
 import { Player } from './Player';
 import { BoardPosition } from './BoardPosition';
+import { point } from './Point';
 
 export class NineMensMorrisGame {
     private static readonly NUMBER_OF_POINTS = 9;
+
     public static readonly BOARD_SIZE = 7;
-    private board: BoardPosition[];
+    private readonly board: BoardPosition[];
 
     private initialHandQueue: Player[];
 
@@ -35,7 +37,10 @@ export class NineMensMorrisGame {
         const board: BoardPosition[] = [];
         for (let i = 1; i <= NineMensMorrisGame.BOARD_SIZE; i++) {
             columns[i - 1].forEach(col => {
-                board.push({ player: Player.NO_PLAYER, point: { row: i, col } });
+                board.push({
+                    player: Player.NO_PLAYER,
+                    point: point(i, col),
+                });
             });
         }
         return board;

@@ -1,10 +1,10 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { BoardPosition } from '../game/BoardPosition';
+import { point, Point } from '../game/Point';
 
 export class GameCanvasDrawer {
     private squareSize: number;
     private readonly boardColor = '#212121';
-    private static readonly A_CODE = 'a'.charCodeAt(0);
 
     public constructor(private canvas: HTMLCanvasElement, private game: NineMensMorrisGame) {
         this.fitToContainer(canvas);
@@ -21,6 +21,15 @@ export class GameCanvasDrawer {
         this.drawLines(ctx);
     }
 
+
+    private fitToContainer(canvas: HTMLCanvasElement) {
+        // Make it visually fill the positioned parent
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        // ...then set the internal size to match
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
     private drawHelperLines(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
         for (let i = 0; i < NineMensMorrisGame.BOARD_SIZE; ++i) {
             ctx.moveTo(i * this.squareSize, 0);
@@ -37,22 +46,12 @@ export class GameCanvasDrawer {
         ctx.stroke();
     }
 
-    private fitToContainer(canvas: HTMLCanvasElement) {
-        // Make it visually fill the positioned parent
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        // ...then set the internal size to match
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-    }
-
     private drawDots(ctx: CanvasRenderingContext2D) {
         ctx.moveTo(0, 0);
         ctx.fillStyle = this.boardColor;
 
         this.game.getBoard().forEach((board: BoardPosition) => {
-            const xPosition =
-                (board.point.col.charCodeAt(0) - GameCanvasDrawer.A_CODE) * this.squareSize + this.squareSize / 2;
+            const xPosition = board.point.colIndex * this.squareSize + this.squareSize / 2;
             const yPosition = (board.point.row - 1) * this.squareSize + this.squareSize / 2;
             const radius = 5;
 
@@ -63,37 +62,49 @@ export class GameCanvasDrawer {
     }
 
     private drawLines(ctx: CanvasRenderingContext2D) {
-        const center = this.squareSize / 2;
         ctx.strokeStyle = this.boardColor;
-        let boardSize = NineMensMorrisGame.BOARD_SIZE;
 
-        ctx.strokeRect(center, center, this.squareSize * (boardSize - 1), this.squareSize * (boardSize - 1));
-        ctx.strokeRect(
-            this.squareSize + center,
-            this.squareSize + center,
-            this.squareSize * (boardSize - 3),
-            this.squareSize * (boardSize - 3),
-        );
+        this.strokeRect(ctx, point(1, 'a'), point(7, 'g'));
+        this.strokeRect(ctx, point(2, 'b'), point(6, 'f'));
+        this.strokeRect(ctx, point(3, 'c'), point(5, 'e'));
 
-        ctx.strokeRect(
-            2 * this.squareSize + center,
-            2 * this.squareSize + center,
-            this.squareSize * (boardSize - 5),
-            this.squareSize * (boardSize - 5),
-        );
+        this.moveTo(ctx, point(1, 'd'));
+        this.lineTo(ctx, point(3, 'd'));
 
-        ctx.moveTo(this.squareSize * (boardSize / 2), center);
-        ctx.lineTo(this.squareSize * (boardSize / 2), 3 * this.squareSize - center);
+        this.moveTo(ctx, point(5, 'd'));
+        this.lineTo(ctx, point(7, 'd'));
 
-        ctx.moveTo(this.squareSize * (boardSize / 2), 5 * this.squareSize - center);
-        ctx.lineTo(this.squareSize * (boardSize / 2), boardSize * this.squareSize - center);
+        this.moveTo(ctx, point(4, 'a'));
+        this.lineTo(ctx, point(4, 'c'));
 
-        ctx.moveTo(center, this.squareSize * (boardSize / 2));
-        ctx.lineTo(3 * this.squareSize - center, this.squareSize * (boardSize / 2));
-
-        ctx.moveTo(5 * this.squareSize - center, this.squareSize * (boardSize / 2));
-        ctx.lineTo(boardSize * this.squareSize - center, this.squareSize * (boardSize / 2));
+        this.moveTo(ctx, point(4, 'e'));
+        this.lineTo(ctx, point(4, 'g'));
 
         ctx.stroke();
+    }
+
+    private moveTo(ctx: CanvasRenderingContext2D, point: Point) {
+        ctx.moveTo(
+            this.squareSize * point.colIndex + this.squareSize / 2,
+            this.squareSize * (point.row - 1) + this.squareSize / 2,
+        );
+    }
+
+    private lineTo(ctx: CanvasRenderingContext2D, point: Point) {
+        ctx.lineTo(
+            this.squareSize * point.colIndex + this.squareSize / 2,
+            this.squareSize * (point.row - 1) + this.squareSize / 2,
+        );
+    }
+
+    private strokeRect(ctx: CanvasRenderingContext2D, start: Point, end: Point) {
+        let x = this.squareSize * start.colIndex + this.squareSize / 2;
+        let y = this.squareSize * (start.row - 1) + this.squareSize / 2;
+        ctx.strokeRect(
+            x,
+            y,
+            this.squareSize * end.colIndex - x + this.squareSize / 2,
+            this.squareSize * (end.row - 1) - y + this.squareSize / 2,
+        );
     }
 }
