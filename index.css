@@ -9,7 +9,7 @@ body {
 
 .canvas-wrapper {
     background: white;
-    --boardSize: 600px;
+    --boardSize: 525px;
     width: var(--boardSize);
     height: var(--boardSize);
     position: relative;

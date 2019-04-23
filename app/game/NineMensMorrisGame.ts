@@ -2,8 +2,8 @@ import { Player } from './Player';
 import { BoardPosition } from './BoardPosition';
 
 export class NineMensMorrisGame {
-    private static NUMBER_OF_POINTS = 9;
-    private static BOARD_SIZE = 7;
+    private static readonly NUMBER_OF_POINTS = 9;
+    public static readonly BOARD_SIZE = 7;
     private board: BoardPosition[];
 
     private initialHandQueue: Player[];
@@ -39,5 +39,9 @@ export class NineMensMorrisGame {
             });
         }
         return board;
+    }
+
+    public getBoard() {
+        return this.board;
     }
 }
