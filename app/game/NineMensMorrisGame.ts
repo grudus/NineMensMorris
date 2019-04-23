@@ -1,18 +1,31 @@
 import { Player } from './Player';
 import { BoardPosition } from './BoardPosition';
-import { point } from './Point';
+import { arePointsEqual, Point, point } from './Point';
 
 export class NineMensMorrisGame {
     private static readonly NUMBER_OF_POINTS = 9;
 
     public static readonly BOARD_SIZE = 7;
-    private readonly board: BoardPosition[];
+    public readonly board: BoardPosition[];
 
     private initialHandQueue: Player[];
+    private currentPlayerMove = Player.PLAYER_1;
 
     public constructor() {
         this.initialHandQueue = this.initHandQueue();
         this.board = this.initBoard();
+    }
+
+    public makeMove(point: Point) {
+        if (this.initialHandQueue.length) {
+            const position = this.board.find(p => arePointsEqual(p.point, point));
+            position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
+            this.currentPlayerMove = this.initialHandQueue.pop();
+        }
+    }
+
+    public isPointValid(point: Point): boolean {
+        return this.board.some(p => arePointsEqual(p.point, point));
     }
 
     private initHandQueue(): Player[] {
@@ -44,9 +57,5 @@ export class NineMensMorrisGame {
             });
         }
         return board;
-    }
-
-    public getBoard() {
-        return this.board;
     }
 }

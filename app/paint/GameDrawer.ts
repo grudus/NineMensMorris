@@ -1,19 +1,30 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { BoardPosition } from '../game/BoardPosition';
-import { point } from '../game/Point';
-import { GameCanvas } from './GameCanvas';
+import { Point, point } from '../game/Point';
+import { GameCanvasContext } from './GameCanvasContext';
+import { Player } from '../game/Player';
 
-export class GameCanvasDrawer {
+export class GameDrawer {
     private readonly squareSize: number;
     private readonly boardColor = '#212121';
-    private readonly gameCanvas: GameCanvas;
+    private readonly gameCanvas: GameCanvasContext;
 
     public constructor(private canvas: HTMLCanvasElement, private game: NineMensMorrisGame) {
         this.fitToContainer(canvas);
+
+        this.addMouseListener(canvas);
+
         this.squareSize = canvas.width / NineMensMorrisGame.BOARD_SIZE;
-        this.gameCanvas = new GameCanvas(canvas.getContext('2d'), this.squareSize);
+        this.gameCanvas = new GameCanvasContext(canvas.getContext('2d'), this.squareSize);
 
         this.drawInitialCanvas(canvas);
+    }
+
+    private onMouseClick(point: Point) {
+        if (this.game.isPointValid(point)) {
+            this.game.makeMove(point);
+            this.drawDots();
+        }
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -49,11 +60,23 @@ export class GameCanvasDrawer {
     }
 
     private drawDots() {
-        this.gameCanvas.setColor(this.boardColor);
         const radius = 5;
 
-        this.game.getBoard().forEach((board: BoardPosition) => {
-            this.gameCanvas.fillCircle(board.point, radius);
+        this.game.board.forEach((board: BoardPosition) => {
+            switch (board.player) {
+                case Player.NO_PLAYER:
+                    this.gameCanvas.setColor(this.boardColor);
+                    this.gameCanvas.fillCircle(board.point, radius);
+                    break;
+                case Player.PLAYER_1:
+                    this.gameCanvas.setColor('blue');
+                    this.gameCanvas.fillCircle(board.point, radius * 2);
+                    break;
+                case Player.PLAYER_2:
+                    this.gameCanvas.setColor('red');
+                    this.gameCanvas.fillCircle(board.point, radius * 2);
+                    break;
+            }
         });
     }
 
@@ -77,5 +100,21 @@ export class GameCanvasDrawer {
         this.gameCanvas.lineTo(point(4, 'g'));
 
         this.gameCanvas.stroke();
+    }
+
+    private addMouseListener(canvas: HTMLCanvasElement) {
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top,
+            };
+        }
+
+        canvas.addEventListener('click', e => {
+            const pos = getMousePos(canvas, e);
+            const point = this.gameCanvas.getPoint(pos);
+            this.onMouseClick(point);
+        });
     }
 }

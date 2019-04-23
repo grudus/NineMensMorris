@@ -1,5 +1,5 @@
 import { NineMensMorrisGame } from './game/NineMensMorrisGame';
-import { GameCanvasDrawer } from './paint/GameCanvasDrawer';
+import { GameDrawer } from './paint/GameDrawer';
 
 (function() {
     console.log("HELLO IN THE NINE MEN'S MORRIS GAME");
@@ -7,7 +7,5 @@ import { GameCanvasDrawer } from './paint/GameCanvasDrawer';
     const game = new NineMensMorrisGame();
     const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
-    const drawer = new GameCanvasDrawer(canvas, game);
-
-    debugger;
+    const drawer = new GameDrawer(canvas, game);
 })();

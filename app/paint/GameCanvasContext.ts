@@ -1,6 +1,6 @@
-import { Point } from '../game/Point';
+import { Point, pointFromIndexes } from '../game/Point';
 
-export class GameCanvas {
+export class GameCanvasContext {
     public constructor(private ctx: CanvasRenderingContext2D, private squareSize: number) {}
 
     public setColor(color: string) {
@@ -45,5 +45,11 @@ export class GameCanvas {
         this.ctx.beginPath();
         this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);
         this.ctx.fill();
+    }
+
+    public getPoint(pos: { x: number; y: number }): Point {
+        const row = Math.floor(pos.y / this.squareSize);
+        const col = Math.floor(pos.x / this.squareSize);
+        return pointFromIndexes(row, col);
     }
 }
