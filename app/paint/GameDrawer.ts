@@ -21,7 +21,7 @@ export class GameDrawer {
     }
 
     private onMouseClick(point: Point) {
-        if (this.game.isPointValid(point)) {
+        if (this.game.canMakeMove(point)) {
             this.game.makeMove(point);
             this.drawDots();
         }
