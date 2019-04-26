@@ -17,7 +17,7 @@ export class GameDrawer {
         this.squareSize = canvas.width / NineMensMorrisGame.BOARD_SIZE;
         this.gameCanvas = new GameCanvasContext(canvas.getContext('2d'), this.squareSize);
 
-        this.drawInitialCanvas(canvas);
+        this.drawInitialCanvas();
     }
 
     private onMouseClick(point: Point) {
@@ -25,6 +25,7 @@ export class GameDrawer {
             this.game.makeMove(point);
             this.drawDots();
         }
+        this.drawPossibleMoves(point);
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -34,11 +35,9 @@ export class GameDrawer {
         canvas.height = canvas.offsetHeight;
     }
 
-    private drawInitialCanvas(canvas: HTMLCanvasElement) {
-        this.drawHelperLines(canvas);
-
-        this.drawDots();
+    private drawInitialCanvas() {
         this.drawLines();
+        this.drawDots();
     }
 
     private drawHelperLines(canvas: HTMLCanvasElement) {
@@ -78,6 +77,17 @@ export class GameDrawer {
                     break;
             }
         });
+    }
+
+    private drawPossibleMoves(point: Point) {
+        this.game.possibleMoves(point).forEach(point => {
+            this.gameCanvas.strokeCircle(point, 15);
+        });
+
+        setTimeout(() => {
+            this.gameCanvas.clearAll();
+            this.drawInitialCanvas();
+        }, 1000);
     }
 
     private drawLines() {

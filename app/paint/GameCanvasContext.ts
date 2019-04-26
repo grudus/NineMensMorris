@@ -39,17 +39,36 @@ export class GameCanvasContext {
     }
 
     public fillCircle(point: Point, radius: number) {
-        const xPosition = point.colIndex * this.squareSize + this.squareSize / 2;
-        const yPosition = (point.row - 1) * this.squareSize + this.squareSize / 2;
-
-        this.ctx.beginPath();
-        this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);
+        this.drawCircle(point, radius);
         this.ctx.fill();
+    }
+    public strokeCircle(point: Point, radius: number) {
+        this.drawCircle(point, radius);
+        this.ctx.stroke();
+    }
+
+    public clearCircle(point: Point, radius: number) {
+        this.drawCircle(point, radius);
+        this.ctx.clip();
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    }
+
+    public clearAll() {
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.beginPath();
     }
 
     public getPoint(pos: { x: number; y: number }): Point {
         const row = Math.floor(pos.y / this.squareSize);
         const col = Math.floor(pos.x / this.squareSize);
         return pointFromIndexes(row, col);
+    }
+
+    private drawCircle(point: Point, radius: number) {
+        const xPosition = point.colIndex * this.squareSize + this.squareSize / 2;
+        const yPosition = (point.row - 1) * this.squareSize + this.squareSize / 2;
+
+        this.ctx.beginPath();
+        this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);
     }
 }
