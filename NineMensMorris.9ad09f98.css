@@ -1,0 +1,39 @@
+body {
+    font-family: 'Open Sans', sans-serif;
+    background: #f0f0f0;
+}
+
+.header {
+    text-align: center;
+}
+
+.canvas-wrapper {
+    background: white;
+    --boardSize: 525px;
+    width: var(--boardSize);
+    height: var(--boardSize);
+    position: absolute;
+
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+    margin-left: calc(50%);
+    transform: translateX(-50%);
+    margin-top: 2.5rem;
+}
+
+#players-info-wrapper {
+    position: absolute;
+}
+
+@media (max-width: 768px) {
+    .canvas-wrapper {
+        position: relative;
+        --boardSize: 90vw;
+    }
+
+    #players-info-wrapper {
+        position: relative;
+    }
+}
+
+
+/*# sourceMappingURL=/NineMensMorris.9ad09f98.css.map */
