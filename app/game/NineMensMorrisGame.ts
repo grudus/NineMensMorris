@@ -1,7 +1,10 @@
-import { Player } from './Player';
+import { nextPlayer, Player } from './Player';
 import { BoardPosition } from './BoardPosition';
 import { arePointsEqual, Point } from './Point';
 import * as InitialGameHelper from './InitialGameHelper';
+import { GamePhase } from './GamePhase';
+import { GameMoveEngine } from './GameMoveEngine';
+import { GameMoveResult } from './GameMoveResult';
 
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
@@ -10,6 +13,7 @@ export class NineMensMorrisGame {
 
     private initialHandQueue: Player[];
     private currentPlayerMove = Player.PLAYER_1;
+    private gameMoveEngine: GameMoveEngine;
 
     private cannotGoPoints = [
         { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
@@ -17,17 +21,33 @@ export class NineMensMorrisGame {
     ];
 
     public constructor() {
+        this.gameMoveEngine = new GameMoveEngine(this);
         this.initialHandQueue = InitialGameHelper.initHandQueue();
         this.board = InitialGameHelper.initBoard();
     }
 
-    public makeMove(point: Point) {
+    public addInitialPoint(point: Point) {
         if (this.initialHandQueue.length) {
             const position = this.board.find(p => arePointsEqual(p.point, point));
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
             this.currentPlayerMove = this.initialHandQueue.pop();
-        }
+        } else throw Error('Initial hand queue is empty!');
         console.log('IS MILL?', this.isMill(point));
+    }
+
+    public tryToMakeMove(point: Point): GameMoveResult {
+        return this.gameMoveEngine.makeMove(point);
+    }
+
+    public movePoint(from: Point, to: Point) {
+        const fromPosition = this.board.find(p => arePointsEqual(p.point, from));
+        const toPosition = this.board.find(p => arePointsEqual(p.point, to));
+
+        if (toPosition.player === Player.NO_PLAYER) {
+            toPosition.player = fromPosition.player;
+            fromPosition.player = Player.NO_PLAYER;
+            this.currentPlayerMove = nextPlayer(this.currentPlayerMove);
+        }
     }
 
     public isMill(changedPoint: Point): boolean {
@@ -51,13 +71,17 @@ export class NineMensMorrisGame {
         return checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
     }
 
-    public canMakeMove(point: Point): boolean {
-        const triedPosition: BoardPosition = this.board.find(p => arePointsEqual(p.point, point));
+    public isNoPlayer(point: Point): boolean {
+        const triedPosition: BoardPosition = this.findPosition(point);
         return triedPosition && triedPosition.player == Player.NO_PLAYER;
     }
 
+    public findPosition(point: Point): BoardPosition {
+        return this.board.find(p => arePointsEqual(p.point, point));
+    }
+
     public possibleMoves(point: Point): Point[] {
-        return this.findNeighbours(point).filter(p => this.canMakeMove(p));
+        return this.findNeighbours(point).filter(p => this.isNoPlayer(p));
     }
 
     public findNeighbours(point: Point): Point[] {
@@ -66,6 +90,14 @@ export class NineMensMorrisGame {
         this.filterNeighboursImpossibleToGo(point, neighbours);
 
         return neighbours;
+    }
+
+    public get currentPhase(): GamePhase {
+        return this.initialHandQueue.length ? GamePhase.INITIAL : GamePhase.NORMAL;
+    }
+
+    public get currentPlayer(): Player {
+        return this.currentPlayerMove;
     }
 
     private findColsAndRowsInLine(point: Point): FindInLinePointsResults {

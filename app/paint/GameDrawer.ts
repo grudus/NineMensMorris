@@ -3,6 +3,7 @@ import { BoardPosition } from '../game/BoardPosition';
 import { Point, point } from '../game/Point';
 import { GameCanvasContext } from './GameCanvasContext';
 import { Player } from '../game/Player';
+import { GameMoveResult } from '../game/GameMoveResult';
 
 export class GameDrawer {
     private readonly squareSize: number;
@@ -21,11 +22,22 @@ export class GameDrawer {
     }
 
     private onMouseClick(point: Point) {
-        if (this.game.canMakeMove(point)) {
-            this.game.makeMove(point);
-            this.drawDots();
+        const gameMoveResult = this.game.tryToMakeMove(point);
+
+        switch (gameMoveResult) {
+            case GameMoveResult.SUCCESSFUL_MOVE:
+                this.resetCanvasAndDrawGame();
+                break;
+            case GameMoveResult.FIRST_MOVE_PART:
+                this.drawPossibleMoves(point);
+                break;
+            case GameMoveResult.RESTART_MOVE:
+                this.resetCanvasAndDrawGame();
+                this.onMouseClick(point);
+                break;
+            case GameMoveResult.CANNOT_MOVE:
+                break;
         }
-        this.drawPossibleMoves(point);
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -38,24 +50,6 @@ export class GameDrawer {
     private drawInitialCanvas() {
         this.drawLines();
         this.drawDots();
-    }
-
-    private drawHelperLines(canvas: HTMLCanvasElement) {
-        const ctx: CanvasRenderingContext2D = canvas.getContext('2d');
-
-        for (let i = 0; i < NineMensMorrisGame.BOARD_SIZE; ++i) {
-            ctx.moveTo(i * this.squareSize, 0);
-            // noinspection JSSuspiciousNameCombination
-            ctx.lineTo(i * this.squareSize, canvas.width);
-        }
-
-        for (let i = 0; i < NineMensMorrisGame.BOARD_SIZE; ++i) {
-            ctx.moveTo(0, i * this.squareSize);
-            // noinspection JSSuspiciousNameCombination
-            ctx.lineTo(canvas.height, i * this.squareSize);
-        }
-        this.gameCanvas.setColor('#e0e0e0');
-        ctx.stroke();
     }
 
     private drawDots() {
@@ -83,11 +77,11 @@ export class GameDrawer {
         this.game.possibleMoves(point).forEach(point => {
             this.gameCanvas.strokeCircle(point, 15);
         });
+    }
 
-        setTimeout(() => {
-            this.gameCanvas.clearAll();
-            this.drawInitialCanvas();
-        }, 1000);
+    private resetCanvasAndDrawGame() {
+        this.gameCanvas.clearAll();
+        this.drawInitialCanvas();
     }
 
     private drawLines() {
