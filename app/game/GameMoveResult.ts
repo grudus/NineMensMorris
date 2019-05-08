@@ -3,4 +3,5 @@ export enum GameMoveResult {
     FIRST_MOVE_PART = 'FIRST_MOVE_PART',
     RESTART_MOVE = 'RESTART_MOVE',
     CANNOT_MOVE = 'CANNOT_MOVE',
+    MILL = 'MILL',
 }

@@ -28,9 +28,11 @@ export class GameDrawer {
 
     private onMouseClick(point: Point) {
         const gameMoveResult = this.game.tryToMakeMove(point);
+        console.log(gameMoveResult);
 
         switch (gameMoveResult) {
             case GameMoveResult.SUCCESSFUL_MOVE:
+            case GameMoveResult.MILL:
                 this.resetCanvasAndDrawGame();
                 break;
             case GameMoveResult.FIRST_MOVE_PART:

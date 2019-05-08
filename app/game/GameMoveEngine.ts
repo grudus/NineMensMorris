@@ -20,7 +20,7 @@ export class GameMoveEngine {
     private makeInitialMove(point: Point) {
         if (this.game.isNoPlayer(point)) {
             this.game.addInitialPoint(point);
-            return GameMoveResult.SUCCESSFUL_MOVE;
+            return this.game.isMill(point) ? GameMoveResult.MILL : GameMoveResult.SUCCESSFUL_MOVE;
         }
         return GameMoveResult.CANNOT_MOVE;
     }
@@ -51,7 +51,7 @@ export class GameMoveEngine {
 
         this.game.movePoint(this.currentMove.point, point);
         this.currentMove = null;
-        return GameMoveResult.SUCCESSFUL_MOVE;
+        return this.game.isMill(point) ? GameMoveResult.MILL : GameMoveResult.SUCCESSFUL_MOVE;
     }
 }
 

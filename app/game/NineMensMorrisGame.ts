@@ -32,7 +32,6 @@ export class NineMensMorrisGame {
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
             this.currentPlayerMove = this.initialHandQueue.pop();
         } else throw Error('Initial hand queue is empty!');
-        console.log('IS MILL?', this.isMill(point));
     }
 
     public tryToMakeMove(point: Point): GameMoveResult {
