@@ -12,7 +12,7 @@ body {
     --boardSize: 525px;
     width: var(--boardSize);
     height: var(--boardSize);
-    position: relative;
+    position: absolute;
 
     box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
     margin-left: calc(50%);
@@ -20,8 +20,17 @@ body {
     margin-top: 2.5rem;
 }
 
+#players-info-wrapper {
+    position: absolute;
+}
+
 @media (max-width: 768px) {
     .canvas-wrapper {
+        position: relative;
         --boardSize: 90vw;
+    }
+
+    #players-info-wrapper {
+        position: relative;
     }
 }

@@ -4,13 +4,18 @@ import { Point, point } from '../game/Point';
 import { GameCanvasContext } from './GameCanvasContext';
 import { Player } from '../game/Player';
 import { GameMoveResult } from '../game/GameMoveResult';
+import { getPaintablePlayer } from './PaintablePlayer';
 
 export class GameDrawer {
     private readonly squareSize: number;
     private readonly boardColor = '#212121';
     private readonly gameCanvas: GameCanvasContext;
 
-    public constructor(private canvas: HTMLCanvasElement, private game: NineMensMorrisGame) {
+    public constructor(
+        private canvas: HTMLCanvasElement,
+        private game: NineMensMorrisGame,
+        private afterUpdate: Function,
+    ) {
         this.fitToContainer(canvas);
 
         this.addMouseListener(canvas);
@@ -38,6 +43,7 @@ export class GameDrawer {
             case GameMoveResult.CANNOT_MOVE:
                 break;
         }
+        this.afterUpdate();
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -53,22 +59,15 @@ export class GameDrawer {
     }
 
     private drawDots() {
-        const radius = 5;
-
         this.game.board.forEach((board: BoardPosition) => {
-            switch (board.player) {
-                case Player.NO_PLAYER:
-                    this.gameCanvas.setColor(this.boardColor);
-                    this.gameCanvas.fillCircle(board.point, radius);
-                    break;
-                case Player.PLAYER_1:
-                    this.gameCanvas.setColor('blue');
-                    this.gameCanvas.fillCircle(board.point, radius * 2);
-                    break;
-                case Player.PLAYER_2:
-                    this.gameCanvas.setColor('red');
-                    this.gameCanvas.fillCircle(board.point, radius * 2);
-                    break;
+            const paintable = getPaintablePlayer(board.player);
+
+            if (board.player === Player.NO_PLAYER) {
+                this.gameCanvas.setColor(this.boardColor);
+                this.gameCanvas.fillCircle(board.point, paintable.radius);
+            } else {
+                this.gameCanvas.setColor(paintable.color);
+                this.gameCanvas.fillCircle(board.point, paintable.radius);
             }
         });
     }
