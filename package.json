@@ -1,6 +1,6 @@
 {
   "name": "nine-mens-morris",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Nine Men's Morris game implementation + AI using min-max algorithm and alpha-beta pruning.",
   "main": "index.js",
   "scripts": {
