@@ -14,8 +14,8 @@ export class GameInfoWriter {
 
     private readonly gameStateToText = {
         [GameState.INITIAL]: 'Initial',
-        [GameState.MOVE_SELECTED_POINT]: 'Move point',
-        [GameState.SELECT_POINT_TO_MOVE]: 'Select point',
+        [GameState.MOVE_SELECTED_POINT]: 'Move coordinate',
+        [GameState.SELECT_POINT_TO_MOVE]: 'Select coordinate',
         [GameState.MILL]: 'Mill',
         [GameState.GAME_OVER]: 'The end',
     };

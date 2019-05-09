@@ -1,4 +1,4 @@
-import { Point, pointFromIndexes } from '../game/Point';
+import { Coordinate, coordinatesFromIndexes } from '../game/Coordinate';
 
 export class GameCanvasContext {
     public constructor(private ctx: CanvasRenderingContext2D, private squareSize: number) {}
@@ -8,21 +8,21 @@ export class GameCanvasContext {
         this.ctx.fillStyle = color;
     }
 
-    public moveTo(point: Point) {
+    public moveTo(coordinate: Coordinate) {
         this.ctx.moveTo(
-            this.squareSize * point.colIndex + this.squareSize / 2,
-            this.squareSize * (point.row - 1) + this.squareSize / 2,
+            this.squareSize * coordinate.colIndex + this.squareSize / 2,
+            this.squareSize * (coordinate.row - 1) + this.squareSize / 2,
         );
     }
 
-    public lineTo(point: Point) {
+    public lineTo(coordinate: Coordinate) {
         this.ctx.lineTo(
-            this.squareSize * point.colIndex + this.squareSize / 2,
-            this.squareSize * (point.row - 1) + this.squareSize / 2,
+            this.squareSize * coordinate.colIndex + this.squareSize / 2,
+            this.squareSize * (coordinate.row - 1) + this.squareSize / 2,
         );
     }
 
-    public strokeRect(start: Point, end: Point) {
+    public strokeRect(start: Coordinate, end: Coordinate) {
         const x = this.squareSize * start.colIndex + this.squareSize / 2;
         const y = this.squareSize * (start.row - 1) + this.squareSize / 2;
 
@@ -38,19 +38,13 @@ export class GameCanvasContext {
         this.ctx.stroke();
     }
 
-    public fillCircle(point: Point, radius: number) {
-        this.drawCircle(point, radius);
+    public fillCircle(coordinate: Coordinate, radius: number) {
+        this.drawCircle(coordinate, radius);
         this.ctx.fill();
     }
-    public strokeCircle(point: Point, radius: number) {
-        this.drawCircle(point, radius);
+    public strokeCircle(coordinate: Coordinate, radius: number) {
+        this.drawCircle(coordinate, radius);
         this.ctx.stroke();
-    }
-
-    public clearCircle(point: Point, radius: number) {
-        this.drawCircle(point, radius);
-        this.ctx.clip();
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
 
     public clearAll() {
@@ -58,15 +52,15 @@ export class GameCanvasContext {
         this.ctx.beginPath();
     }
 
-    public getPoint(pos: { x: number; y: number }): Point {
+    public getCoordinate(pos: { x: number; y: number }): Coordinate {
         const row = Math.floor(pos.y / this.squareSize);
         const col = Math.floor(pos.x / this.squareSize);
-        return pointFromIndexes(row, col);
+        return coordinatesFromIndexes(row, col);
     }
 
-    private drawCircle(point: Point, radius: number) {
-        const xPosition = point.colIndex * this.squareSize + this.squareSize / 2;
-        const yPosition = (point.row - 1) * this.squareSize + this.squareSize / 2;
+    private drawCircle(coordinate: Coordinate, radius: number) {
+        const xPosition = coordinate.colIndex * this.squareSize + this.squareSize / 2;
+        const yPosition = (coordinate.row - 1) * this.squareSize + this.squareSize / 2;
 
         this.ctx.beginPath();
         this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);

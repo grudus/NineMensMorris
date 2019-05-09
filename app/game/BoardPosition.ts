@@ -1,7 +1,7 @@
-import { Point } from './Point';
+import { Coordinate } from './Coordinate';
 import { Player } from './Player';
 
 export interface BoardPosition {
-    point: Point;
+    coordinate: Coordinate;
     player: Player;
 }

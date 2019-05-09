@@ -1,11 +1,12 @@
 import { nextPlayer, Player } from './Player';
 import { BoardPosition } from './BoardPosition';
-import { arePointsEqual, Point } from './Point';
+import { areCoordsEquals, Coordinate } from './Coordinate';
 import * as InitialGameHelper from './InitialGameHelper';
 import { GameState } from './GameState';
 import { GameMoveEngine } from './GameMoveEngine';
 import { GameMoveResult } from './GameMoveResult';
 import { Move, MovesHistory } from './MovesHistory';
+import { BoardService } from './BoardService';
 
 const POINTS_TO_ENABLE_FLYING = 3;
 const POINTS_TO_GAME_OVER = 2;
@@ -13,7 +14,6 @@ const POINTS_TO_GAME_OVER = 2;
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
     public static readonly BOARD_SIZE = 7;
-    public readonly board: BoardPosition[];
 
     private initialHandQueue: Player[];
     private currentPlayerMove = Player.PLAYER_1;
@@ -23,23 +23,22 @@ export class NineMensMorrisGame {
     private prevState: GameState = GameState.INITIAL;
     public readonly playerPoints = { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 };
 
-    private cannotGoPoints = [
+    private cannotGoCoordinates = [
         { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
         { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
     ];
 
-    public constructor(private movesHistory: MovesHistory) {
+    public constructor(private movesHistory: MovesHistory, public boardService: BoardService) {
         this.gameMoveEngine = new GameMoveEngine(this);
         this.initialHandQueue = InitialGameHelper.initHandQueue();
-        this.board = InitialGameHelper.initBoard();
     }
 
-    public addInitialPoint(point: Point) {
+    public addInitialPoint(coordinate: Coordinate) {
         if (this.initialHandQueue.length) {
-            const position = this.board.find(p => arePointsEqual(p.point, point));
+            const position = this.boardService.position(coordinate);
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
             this.playerPoints[this.currentPlayer]++;
-            this.movesHistory.addInitialMove(point, this.currentPlayer);
+            this.movesHistory.addInitialMove(coordinate, this.currentPlayer);
         } else throw Error('Initial hand queue is empty!');
     }
 
@@ -53,13 +52,13 @@ export class NineMensMorrisGame {
         }
     }
 
-    public tryToMakeMove(point: Point): GameMoveResult {
-        return this.gameMoveEngine.makeMove(point);
+    public tryToMakeMove(coordinate: Coordinate): GameMoveResult {
+        return this.gameMoveEngine.makeMove(coordinate);
     }
 
-    public movePoint(from: Point, to: Point) {
-        const fromPosition = this.board.find(p => arePointsEqual(p.point, from));
-        const toPosition = this.board.find(p => arePointsEqual(p.point, to));
+    public movePoint(from: Coordinate, to: Coordinate) {
+        const fromPosition = this.boardService.position(from);
+        const toPosition = this.boardService.position(to);
 
         if (toPosition.player === Player.NO_PLAYER) {
             toPosition.player = fromPosition.player;
@@ -69,11 +68,11 @@ export class NineMensMorrisGame {
         }
     }
 
-    public detectMill(changedPoint: Point): boolean {
-        const { colsInLine, rowsInLine } = this.findColsAndRowsInLine(changedPoint);
+    public detectMill(changedCoordinate: Coordinate): boolean {
+        const { colsInLine, rowsInLine } = this.boardService.findColsAndRowsInLine(changedCoordinate);
 
-        const checkMill = (inLineArray: BoardPosition[], point: Point): boolean => {
-            const inLineIndex = inLineArray.findIndex(p => arePointsEqual(p.point, point));
+        const checkMill = (inLineArray: BoardPosition[], coordinate: Coordinate): boolean => {
+            const inLineIndex = inLineArray.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
             for (let i = 0; i < inLineArray.length; i += 3) {
                 if (inLineIndex >= i && inLineIndex < i + 3) {
                     const currPlayer = inLineArray[inLineIndex].player;
@@ -87,7 +86,7 @@ export class NineMensMorrisGame {
             return false;
         };
 
-        const isMill = checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
+        const isMill = checkMill(colsInLine, changedCoordinate) || checkMill(rowsInLine, changedCoordinate);
         this.millPlayer = isMill ? this.currentPlayer : null;
         if (isMill) {
             this.setState(GameState.MILL);
@@ -99,21 +98,21 @@ export class NineMensMorrisGame {
         return this.millPlayer !== null;
     }
 
+    public forEachBoardPosition(func: (pos: BoardPosition) => void) {
+        this.boardService.forEach(func);
+    }
+
     public isGameOver(): boolean {
         return this.gameState === GameState.GAME_OVER;
     }
 
-    public isNoPlayer(point: Point): boolean {
-        const triedPosition: BoardPosition = this.findPosition(point);
+    public isNoPlayer(coordinate: Coordinate): boolean {
+        const triedPosition: BoardPosition = this.boardService.position(coordinate);
         return triedPosition && triedPosition.player == Player.NO_PLAYER;
     }
 
-    public findPosition(point: Point): BoardPosition {
-        return this.board.find(p => arePointsEqual(p.point, point));
-    }
-
-    public isOpponentPoint(point: Point): boolean {
-        const position = this.findPosition(point);
+    public isOpponentPoint(point: Coordinate): boolean {
+        const position = this.boardService.position(point);
         return this.isOpponentPosition(position);
     }
 
@@ -121,24 +120,24 @@ export class NineMensMorrisGame {
         return position && position.player != Player.NO_PLAYER && position.player != this.currentPlayer;
     }
 
-    public possibleMoves(point: Point): Point[] {
-        const previousPoint: Point = this.movesHistory.getPreviousPoint(point);
-        return this.findNeighbours(point)
+    public possibleMoves(coordinate: Coordinate): Coordinate[] {
+        const previousCoordinate: Coordinate = this.movesHistory.getPreviousCoordinate(this.currentPlayer, coordinate);
+        return this.findNeighbours(coordinate)
             .filter(p => this.isNoPlayer(p))
-            .filter(p => !(previousPoint && arePointsEqual(previousPoint, p)));
+            .filter(p => !(previousCoordinate && areCoordsEquals(previousCoordinate, p)));
     }
 
     public allOpponentPositions(): BoardPosition[] {
-        return this.board.filter((position: BoardPosition) => this.isOpponentPosition(position));
+        return this.boardService.filter((position: BoardPosition) => this.isOpponentPosition(position));
     }
 
-    public findNeighbours(point: Point): Point[] {
+    public findNeighbours(coordinate: Coordinate): Coordinate[] {
         if (this.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
-            return this.board.filter(p => p.player === Player.NO_PLAYER).map(p => p.point);
+            return this.boardService.findPlayerCoordinates(Player.NO_PLAYER);
         }
-        const { colsInLine, rowsInLine } = this.findColsAndRowsInLine(point);
-        const neighbours: Point[] = this.findNearestPoints(point, colsInLine, rowsInLine);
-        this.filterNeighboursImpossibleToGo(point, neighbours);
+        const { colsInLine, rowsInLine } = this.boardService.findColsAndRowsInLine(coordinate);
+        const neighbours: Coordinate[] = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
+        this.filterNeighboursImpossibleToGo(coordinate, neighbours);
 
         return neighbours;
     }
@@ -157,26 +156,13 @@ export class NineMensMorrisGame {
         return this.currentPlayerMove;
     }
 
-    private findColsAndRowsInLine(point: Point): FindInLinePointsResults {
-        return this.board.reduce(
-            (acc, curr) => {
-                if (arePointsEqual(curr.point, point)) {
-                    acc.rowsInLine.push(curr);
-                    acc.colsInLine.push(curr);
-                } else if (curr.point.colIndex === point.colIndex) {
-                    acc.colsInLine.push(curr);
-                } else if (curr.point.row === point.row) {
-                    acc.rowsInLine.push(curr);
-                }
-                return acc;
-            },
-            { colsInLine: [], rowsInLine: [] },
-        );
-    }
-
-    private findNearestPoints(point: Point, colsInLine: BoardPosition[], rowsInLine: BoardPosition[]): Point[] {
-        const sameColumnsIndex = colsInLine.findIndex(p => arePointsEqual(p.point, point));
-        const sameRowsIndex = rowsInLine.findIndex(p => arePointsEqual(p.point, point));
+    private findNearestPoints(
+        coordinate: Coordinate,
+        colsInLine: BoardPosition[],
+        rowsInLine: BoardPosition[],
+    ): Coordinate[] {
+        const sameColumnsIndex = colsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
+        const sameRowsIndex = rowsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
 
         return [
             colsInLine[sameColumnsIndex + 1],
@@ -185,38 +171,41 @@ export class NineMensMorrisGame {
             rowsInLine[sameRowsIndex - 1],
         ]
             .filter(x => x)
-            .map(p => p.point);
+            .map(p => p.coordinate);
     }
 
-    private filterNeighboursImpossibleToGo(point: Point, neighbours: Point[]) {
-        this.cannotGoPoints.forEach(({ from, to }) => {
-            if (arePointsEqual(point, from)) {
-                const i = neighbours.findIndex(p => arePointsEqual(p, to));
+    private filterNeighboursImpossibleToGo(coordinate: Coordinate, neighbours: Coordinate[]) {
+        this.cannotGoCoordinates.forEach(({ from, to }) => {
+            if (areCoordsEquals(coordinate, from)) {
+                const i = neighbours.findIndex(p => areCoordsEquals(p, to));
                 neighbours.splice(i, 1);
-            } else if (arePointsEqual(point, to)) {
-                const i = neighbours.findIndex(p => arePointsEqual(p, from));
+            } else if (areCoordsEquals(coordinate, to)) {
+                const i = neighbours.findIndex(p => areCoordsEquals(p, from));
                 neighbours.splice(i, 1);
             }
         });
     }
 
-    public findSelectablePoints(point?: Point): Point[] {
+    public findSelectableCoordinates(coordinate?: Coordinate): Coordinate[] {
         switch (this.currentState) {
             case GameState.INITIAL:
-                return this.board.filter(p => p.player === Player.NO_PLAYER).map(p => p.point);
+                return this.boardService.findPlayerCoordinates(Player.NO_PLAYER);
             case GameState.SELECT_POINT_TO_MOVE:
-                return this.board.filter(p => p.player === this.currentPlayer).map(p => p.point);
+                return this.boardService.findPlayerCoordinates(this.currentPlayer);
             case GameState.MILL:
-                return this.allOpponentPositions().map(p => p.point);
+                return this.allOpponentPositions().map(p => p.coordinate);
             case GameState.MOVE_SELECTED_POINT:
-                return this.possibleMoves(point);
+                return [
+                    ...this.possibleMoves(coordinate),
+                    ...this.boardService.findPlayerCoordinates(this.currentPlayer),
+                ];
             default:
                 return [];
         }
     }
 
-    public removePoint(point: Point) {
-        const boardPosition = this.findPosition(point);
+    public removePoint(point: Coordinate) {
+        const boardPosition = this.boardService.position(point);
         this.playerPoints[boardPosition.player]--;
         boardPosition.player = Player.NO_PLAYER;
 
@@ -233,9 +222,4 @@ export class NineMensMorrisGame {
     public getMovesHistory(): Move[] {
         return this.movesHistory.getHistory();
     }
-}
-
-interface FindInLinePointsResults {
-    colsInLine: BoardPosition[];
-    rowsInLine: BoardPosition[];
 }

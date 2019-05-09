@@ -1,7 +1,7 @@
 import { Player } from './Player';
 import { NineMensMorrisGame } from './NineMensMorrisGame';
 import { BoardPosition } from './BoardPosition';
-import { point } from './Point';
+import { point } from './Coordinate';
 
 export const initHandQueue = (): Player[] => {
     const queue = [];
@@ -28,7 +28,7 @@ export const initBoard = (): BoardPosition[] => {
         columns[i - 1].forEach(col => {
             board.push({
                 player: Player.NO_PLAYER,
-                point: point(i, col),
+                coordinate: point(i, col),
             });
         });
     }

@@ -1,5 +1,5 @@
 import { NineMensMorrisGame } from './NineMensMorrisGame';
-import { arePointsEqual, Point } from './Point';
+import { areCoordsEquals, Coordinate } from './Coordinate';
 import { GameState } from './GameState';
 import { GameMoveResult } from './GameMoveResult';
 import { Player } from './Player';
@@ -9,7 +9,7 @@ export class GameMoveEngine {
 
     public constructor(private game: NineMensMorrisGame) {}
 
-    public makeMove(point: Point): GameMoveResult {
+    public makeMove(point: Coordinate): GameMoveResult {
         if (this.game.isGameOver()) {
             return;
         }
@@ -22,7 +22,7 @@ export class GameMoveEngine {
         }
     }
 
-    private makeInitialMove(point: Point) {
+    private makeInitialMove(point: Coordinate) {
         if (!this.game.isNoPlayer(point)) {
             return GameMoveResult.CANNOT_MOVE;
         }
@@ -36,15 +36,15 @@ export class GameMoveEngine {
         return GameMoveResult.SUCCESSFUL_MOVE;
     }
 
-    private makeMoveInNormalPhase(point: Point): GameMoveResult {
+    private makeMoveInNormalPhase(point: Coordinate): GameMoveResult {
         if (!this.currentMove) {
             return this.makeFirstMovePart(point);
         }
         return this.makeFinalMovePart(point);
     }
 
-    private makeFirstMovePart(point: Point): GameMoveResult {
-        const position = this.game.findPosition(point);
+    private makeFirstMovePart(point: Coordinate): GameMoveResult {
+        const position = this.game.boardService.position(point);
         if (!position || position.player !== this.game.currentPlayer) {
             return GameMoveResult.CANNOT_MOVE;
         }
@@ -53,8 +53,8 @@ export class GameMoveEngine {
         return GameMoveResult.FIRST_MOVE_PART;
     }
 
-    private makeFinalMovePart(point: Point): GameMoveResult {
-        const pointToMove = this.currentMove.neighbours.find(p => arePointsEqual(p, point));
+    private makeFinalMovePart(point: Coordinate): GameMoveResult {
+        const pointToMove = this.currentMove.neighbours.find(p => areCoordsEquals(p, point));
 
         if (!pointToMove) {
             this.currentMove = null;
@@ -71,7 +71,7 @@ export class GameMoveEngine {
         return GameMoveResult.SUCCESSFUL_MOVE;
     }
 
-    private makeMillMove(point: Point): GameMoveResult {
+    private makeMillMove(point: Coordinate): GameMoveResult {
         if (this.game.isOpponentPoint(point)) {
             this.game.removePoint(point);
             this.game.clearMill();
@@ -83,7 +83,7 @@ export class GameMoveEngine {
 }
 
 interface CurrentMove {
-    point: Point;
-    neighbours: Point[];
+    point: Coordinate;
+    neighbours: Coordinate[];
     player: Player;
 }

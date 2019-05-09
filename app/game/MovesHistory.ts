@@ -1,4 +1,4 @@
-import { arePointsEqual, Point } from './Point';
+import { areCoordsEquals, Coordinate } from './Coordinate';
 import { Player } from './Player';
 
 export class MovesHistory {
@@ -8,24 +8,25 @@ export class MovesHistory {
         this.history.push(move);
     }
 
-    public addInitialMove(point: Point, player: Player) {
-        this.addMove({ to: point, player });
+    public addInitialMove(coordinate: Coordinate, player: Player) {
+        this.addMove({ to: coordinate, player });
     }
 
     public getHistory(): Move[] {
         return this.history;
     }
 
-    public getPreviousPoint(point: Point): Point | null {
+    public getPreviousCoordinate(player: Player, coordinate: Coordinate): Coordinate | null {
         for (let i = this.history.length - 1; i >= 0; i--) {
-            if (arePointsEqual(this.history[i].to, point)) return this.history[i].from;
+            if (this.history[i].player === player)
+                return areCoordsEquals(this.history[i].to, coordinate) ? this.history[i].from : null;
         }
         return null;
     }
 }
 
 export interface Move {
-    from?: Point;
-    to: Point;
+    from?: Coordinate;
+    to: Coordinate;
     player: Player;
 }

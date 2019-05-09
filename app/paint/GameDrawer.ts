@@ -1,6 +1,6 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { BoardPosition } from '../game/BoardPosition';
-import { arePointsEqual, Point, point } from '../game/Point';
+import { areCoordsEquals, Coordinate, point } from '../game/Coordinate';
 import { GameCanvasContext } from './GameCanvasContext';
 import { Player } from '../game/Player';
 import { GameMoveResult } from '../game/GameMoveResult';
@@ -10,7 +10,7 @@ export class GameDrawer {
     private readonly squareSize: number;
     private readonly boardColor = '#212121';
     private readonly gameCanvas: GameCanvasContext;
-    private selectablePoints: Point[];
+    private selectablePoints: Coordinate[];
 
     public constructor(
         private canvas: HTMLCanvasElement,
@@ -25,10 +25,10 @@ export class GameDrawer {
         this.gameCanvas = new GameCanvasContext(canvas.getContext('2d'), this.squareSize);
 
         this.drawInitialCanvas();
-        this.selectablePoints = this.game.findSelectablePoints();
+        this.selectablePoints = this.game.findSelectableCoordinates();
     }
 
-    private onMouseClick(point: Point) {
+    private onMouseClick(point: Coordinate) {
         const gameMoveResult = this.game.tryToMakeMove(point);
 
         switch (gameMoveResult) {
@@ -51,7 +51,7 @@ export class GameDrawer {
                 break;
         }
         this.afterUpdate(gameMoveResult);
-        this.selectablePoints = this.game.findSelectablePoints(point);
+        this.selectablePoints = this.game.findSelectableCoordinates(point);
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -67,20 +67,20 @@ export class GameDrawer {
     }
 
     private drawDots() {
-        this.game.board.forEach((board: BoardPosition) => {
+        this.game.forEachBoardPosition((board: BoardPosition) => {
             const paintable = getPaintablePlayer(board.player);
 
             if (board.player === Player.NO_PLAYER) {
                 this.gameCanvas.setColor(this.boardColor);
-                this.gameCanvas.fillCircle(board.point, paintable.radius);
+                this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
             } else {
                 this.gameCanvas.setColor(paintable.color);
-                this.gameCanvas.fillCircle(board.point, paintable.radius);
+                this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
             }
         });
     }
 
-    private drawPossibleMoves(point: Point) {
+    private drawPossibleMoves(point: Coordinate) {
         this.game.possibleMoves(point).forEach(point => {
             this.gameCanvas.strokeCircle(point, 15);
         });
@@ -88,7 +88,7 @@ export class GameDrawer {
 
     private drawPossibleMillMoves() {
         this.game.allOpponentPositions().forEach(position => {
-            this.gameCanvas.strokeCircle(position.point, 15);
+            this.gameCanvas.strokeCircle(position.coordinate, 15);
         });
     }
 
@@ -130,14 +130,14 @@ export class GameDrawer {
 
         canvas.addEventListener('click', e => {
             const pos = getMousePos(canvas, e);
-            const point = this.gameCanvas.getPoint(pos);
+            const point = this.gameCanvas.getCoordinate(pos);
             this.onMouseClick(point);
         });
 
         canvas.addEventListener('mousemove', e => {
             const pos = getMousePos(canvas, e);
-            const point = this.gameCanvas.getPoint(pos);
-            const isSelectable = this.selectablePoints.some(p => arePointsEqual(p, point));
+            const point = this.gameCanvas.getCoordinate(pos);
+            const isSelectable = this.selectablePoints.some(p => areCoordsEquals(p, point));
             canvas.style.cursor = isSelectable ? 'pointer' : 'default';
         });
     }
