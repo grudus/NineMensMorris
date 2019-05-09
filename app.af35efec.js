@@ -210,18 +210,21 @@ exports.initBoard = function () {
 
   return board;
 };
-},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Point":"app/game/Point.ts"}],"app/game/GamePhase.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Point":"app/game/Point.ts"}],"app/game/GameState.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var GamePhase;
+var GameState;
 
-(function (GamePhase) {
-  GamePhase[GamePhase["INITIAL"] = 0] = "INITIAL";
-  GamePhase[GamePhase["NORMAL"] = 1] = "NORMAL";
-})(GamePhase = exports.GamePhase || (exports.GamePhase = {}));
+(function (GameState) {
+  GameState[GameState["INITIAL"] = 0] = "INITIAL";
+  GameState[GameState["SELECT_POINT_TO_MOVE"] = 1] = "SELECT_POINT_TO_MOVE";
+  GameState[GameState["MOVE_SELECTED_POINT"] = 2] = "MOVE_SELECTED_POINT";
+  GameState[GameState["MILL"] = 3] = "MILL";
+  GameState[GameState["GAME_OVER"] = 4] = "GAME_OVER";
+})(GameState = exports.GameState || (exports.GameState = {}));
 },{}],"app/game/GameMoveResult.ts":[function(require,module,exports) {
 "use strict";
 
@@ -231,7 +234,7 @@ Object.defineProperty(exports, "__esModule", {
 var GameMoveResult;
 
 (function (GameMoveResult) {
-  GameMoveResult[GameMoveResult["SUCCESSFULL_MOVE"] = 0] = "SUCCESSFULL_MOVE";
+  GameMoveResult[GameMoveResult["SUCCESSFUL_MOVE"] = 0] = "SUCCESSFUL_MOVE";
   GameMoveResult[GameMoveResult["FIRST_MOVE_PART"] = 1] = "FIRST_MOVE_PART";
   GameMoveResult[GameMoveResult["RESTART_MOVE"] = 2] = "RESTART_MOVE";
   GameMoveResult[GameMoveResult["CANNOT_MOVE"] = 3] = "CANNOT_MOVE";
@@ -254,7 +257,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var Point_1 = require("./Point");
 
-var GamePhase_1 = require("./GamePhase");
+var GameState_1 = require("./GameState");
 
 var GameMoveResult_1 = require("./GameMoveResult");
 
@@ -271,9 +274,13 @@ function () {
   _createClass(GameMoveEngine, [{
     key: "makeMove",
     value: function makeMove(point) {
+      if (this.game.isGameOver()) {
+        return;
+      }
+
       if (this.game.isMill()) {
         return this.makeMillMove(point);
-      } else if (this.game.currentPhase == GamePhase_1.GamePhase.INITIAL) {
+      } else if (this.game.currentState == GameState_1.GameState.INITIAL) {
         return this.makeInitialMove(point);
       } else {
         return this.makeMoveInNormalPhase(point);
@@ -293,7 +300,7 @@ function () {
       }
 
       this.game.setNextPlayerMove();
-      return GameMoveResult_1.GameMoveResult.SUCCESSFULL_MOVE;
+      return GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE;
     }
   }, {
     key: "makeMoveInNormalPhase",
@@ -318,6 +325,7 @@ function () {
         neighbours: this.game.possibleMoves(point),
         player: this.game.currentPlayer
       };
+      this.game.setState(GameState_1.GameState.MOVE_SELECTED_POINT);
       return GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART;
     }
   }, {
@@ -329,6 +337,7 @@ function () {
 
       if (!pointToMove) {
         this.currentMove = null;
+        this.game.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
         return GameMoveResult_1.GameMoveResult.RESTART_MOVE;
       }
 
@@ -340,7 +349,7 @@ function () {
       }
 
       this.game.setNextPlayerMove();
-      return GameMoveResult_1.GameMoveResult.SUCCESSFULL_MOVE;
+      return GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE;
     }
   }, {
     key: "makeMillMove",
@@ -360,7 +369,7 @@ function () {
 }();
 
 exports.GameMoveEngine = GameMoveEngine;
-},{"./Point":"app/game/Point.ts","./GamePhase":"app/game/GamePhase.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
+},{"./Point":"app/game/Point.ts","./GameState":"app/game/GameState.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
 "use strict";
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
@@ -391,11 +400,12 @@ var Point_1 = require("./Point");
 
 var InitialGameHelper = __importStar(require("./InitialGameHelper"));
 
-var GamePhase_1 = require("./GamePhase");
+var GameState_1 = require("./GameState");
 
 var GameMoveEngine_1 = require("./GameMoveEngine");
 
 var POINTS_TO_ENABLE_FLYING = 3;
+var POINTS_TO_GAME_OVER = 2;
 
 var NineMensMorrisGame =
 /*#__PURE__*/
@@ -408,6 +418,8 @@ function () {
     this.movesHistory = movesHistory;
     this.currentPlayerMove = Player_1.Player.PLAYER_1;
     this.millPlayer = null;
+    this.gameState = GameState_1.GameState.INITIAL;
+    this.prevState = GameState_1.GameState.INITIAL;
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, 0), _this$playerPoints);
     this.cannotGoPoints = [{
       from: {
@@ -450,7 +462,9 @@ function () {
     value: function setNextPlayerMove() {
       if (this.initialHandQueue.length) {
         this.currentPlayerMove = this.initialHandQueue.pop();
+        this.setState(this.initialHandQueue.length ? GameState_1.GameState.INITIAL : GameState_1.GameState.SELECT_POINT_TO_MOVE);
       } else {
+        this.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
         this.currentPlayerMove = Player_1.nextPlayer(this.currentPlayerMove);
       }
     }
@@ -509,12 +523,22 @@ function () {
 
       var isMill = checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
       this.millPlayer = isMill ? this.currentPlayer : null;
+
+      if (isMill) {
+        this.setState(GameState_1.GameState.MILL);
+      }
+
       return isMill;
     }
   }, {
     key: "isMill",
     value: function isMill() {
       return this.millPlayer !== null;
+    }
+  }, {
+    key: "isGameOver",
+    value: function isGameOver() {
+      return this.gameState === GameState_1.GameState.GAME_OVER;
     }
   }, {
     key: "isNoPlayer",
@@ -545,7 +569,7 @@ function () {
     value: function possibleMoves(point) {
       var _this = this;
 
-      var previousPoint = this.movesHistory.getPreviousPoint(this.currentPlayer);
+      var previousPoint = this.movesHistory.getPreviousPoint(point);
       return this.findNeighbours(point).filter(function (p) {
         return _this.isNoPlayer(p);
       }).filter(function (p) {
@@ -579,6 +603,13 @@ function () {
       var neighbours = this.findNearestPoints(point, colsInLine, rowsInLine);
       this.filterNeighboursImpossibleToGo(point, neighbours);
       return neighbours;
+    }
+  }, {
+    key: "setState",
+    value: function setState(state) {
+      if (this.isGameOver()) return;
+      this.prevState = this.gameState;
+      this.gameState = state;
     }
   }, {
     key: "findColsAndRowsInLine",
@@ -636,15 +667,54 @@ function () {
       });
     }
   }, {
+    key: "findSelectablePoints",
+    value: function findSelectablePoints(point) {
+      var _this3 = this;
+
+      switch (this.currentState) {
+        case GameState_1.GameState.INITIAL:
+          return this.board.filter(function (p) {
+            return p.player === Player_1.Player.NO_PLAYER;
+          }).map(function (p) {
+            return p.point;
+          });
+
+        case GameState_1.GameState.SELECT_POINT_TO_MOVE:
+          return this.board.filter(function (p) {
+            return p.player === _this3.currentPlayer;
+          }).map(function (p) {
+            return p.point;
+          });
+
+        case GameState_1.GameState.MILL:
+          return this.allOpponentPositions().map(function (p) {
+            return p.point;
+          });
+
+        case GameState_1.GameState.MOVE_SELECTED_POINT:
+          return this.possibleMoves(point);
+
+        default:
+          return [];
+      }
+    }
+  }, {
     key: "removePoint",
     value: function removePoint(point) {
       var boardPosition = this.findPosition(point);
       this.playerPoints[boardPosition.player]--;
       boardPosition.player = Player_1.Player.NO_PLAYER;
+
+      if (Object.values(this.playerPoints).some(function (points) {
+        return points === POINTS_TO_GAME_OVER;
+      })) {
+        this.setState(GameState_1.GameState.GAME_OVER);
+      }
     }
   }, {
     key: "clearMill",
     value: function clearMill() {
+      this.setState(this.prevState);
       this.millPlayer = null;
     }
   }, {
@@ -653,9 +723,9 @@ function () {
       return this.movesHistory.getHistory();
     }
   }, {
-    key: "currentPhase",
+    key: "currentState",
     get: function get() {
-      return this.initialHandQueue.length ? GamePhase_1.GamePhase.INITIAL : GamePhase_1.GamePhase.NORMAL;
+      return this.gameState;
     }
   }, {
     key: "currentPlayer",
@@ -670,7 +740,7 @@ function () {
 NineMensMorrisGame.NUMBER_OF_POINTS = 9;
 NineMensMorrisGame.BOARD_SIZE = 7;
 exports.NineMensMorrisGame = NineMensMorrisGame;
-},{"./Player":"app/game/Player.ts","./Point":"app/game/Point.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GamePhase":"app/game/GamePhase.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./Point":"app/game/Point.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GameState":"app/game/GameState.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -838,16 +908,16 @@ function () {
     this.squareSize = canvas.width / NineMensMorrisGame_1.NineMensMorrisGame.BOARD_SIZE;
     this.gameCanvas = new GameCanvasContext_1.GameCanvasContext(canvas.getContext('2d'), this.squareSize);
     this.drawInitialCanvas();
+    this.selectablePoints = this.game.findSelectablePoints();
   }
 
   _createClass(GameDrawer, [{
     key: "onMouseClick",
     value: function onMouseClick(point) {
       var gameMoveResult = this.game.tryToMakeMove(point);
-      console.log(gameMoveResult);
 
       switch (gameMoveResult) {
-        case GameMoveResult_1.GameMoveResult.SUCCESSFULL_MOVE:
+        case GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE:
         case GameMoveResult_1.GameMoveResult.OPPONENT_DESTROYED:
           this.resetCanvasAndDrawGame();
           break;
@@ -871,6 +941,7 @@ function () {
       }
 
       this.afterUpdate(gameMoveResult);
+      this.selectablePoints = this.game.findSelectablePoints(point);
     }
   }, {
     key: "fitToContainer",
@@ -966,6 +1037,17 @@ function () {
 
         _this4.onMouseClick(point);
       });
+      canvas.addEventListener('mousemove', function (e) {
+        var pos = getMousePos(canvas, e);
+
+        var point = _this4.gameCanvas.getPoint(pos);
+
+        var isSelectable = _this4.selectablePoints.some(function (p) {
+          return Point_1.arePointsEqual(p, point);
+        });
+
+        canvas.style.cursor = isSelectable ? 'pointer' : 'default';
+      });
     }
   }]);
 
@@ -998,30 +1080,30 @@ Object.defineProperty(exports, "__esModule", {
 
 var PaintablePlayer_1 = require("./PaintablePlayer");
 
-var GameMoveResult_1 = require("../game/GameMoveResult");
-
 var Player_1 = require("../game/Player");
+
+var GameState_1 = require("../game/GameState");
 
 var GameInfoWriter =
 /*#__PURE__*/
 function () {
   function GameInfoWriter(game) {
-    var _this$playerPoints, _this$moveTypeToLabel;
+    var _this$playerPoints, _this$gameStateToText;
 
     _classCallCheck(this, GameInfoWriter);
 
     this.game = game;
     this.currentPlayerText = document.getElementById('current-player-text');
-    this.moveTypeText = document.getElementById('current-move-info');
+    this.moveTypeText = document.getElementById('game-state');
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, document.getElementById('player-1-points')), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, document.getElementById('player-2-points')), _this$playerPoints);
-    this.moveTypeToLabel = (_this$moveTypeToLabel = {}, _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.MILL, 'Mill'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.CANNOT_MOVE, 'Cannot move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART, 'First move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.RESTART_MOVE, 'Restart'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.SUCCESSFULL_MOVE, 'Successfull move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.INVALID_MILL_MOVE, 'Invalid mill move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.OPPONENT_DESTROYED, 'Opponent destroyed'), _this$moveTypeToLabel);
+    this.gameStateToText = (_this$gameStateToText = {}, _defineProperty(_this$gameStateToText, GameState_1.GameState.INITIAL, 'Initial'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MOVE_SELECTED_POINT, 'Move point'), _defineProperty(_this$gameStateToText, GameState_1.GameState.SELECT_POINT_TO_MOVE, 'Select point'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MILL, 'Mill'), _defineProperty(_this$gameStateToText, GameState_1.GameState.GAME_OVER, 'The end'), _this$gameStateToText);
   }
 
   _createClass(GameInfoWriter, [{
     key: "update",
     value: function update(gameMoveResult) {
       this.updateCurrentPlayerText();
-      this.updateMoveInfo(gameMoveResult);
+      this.updateGameState();
       this.updateHistoryMoves();
       this.updatePoints();
     }
@@ -1033,9 +1115,9 @@ function () {
       this.currentPlayerText.style.color = paintablePlayer.color;
     }
   }, {
-    key: "updateMoveInfo",
-    value: function updateMoveInfo(gameMoveResult) {
-      this.moveTypeText.innerText = this.moveTypeToLabel[gameMoveResult] || 'None';
+    key: "updateGameState",
+    value: function updateGameState() {
+      this.moveTypeText.innerText = this.gameStateToText[this.game.currentState] || 'Unknown state';
     }
   }, {
     key: "updateHistoryMoves",
@@ -1061,7 +1143,7 @@ function () {
 }();
 
 exports.GameInfoWriter = GameInfoWriter;
-},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","../game/Player":"app/game/Player.ts"}],"app/game/MovesHistory.ts":[function(require,module,exports) {
+},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts","../game/Player":"app/game/Player.ts","../game/GameState":"app/game/GameState.ts"}],"app/game/MovesHistory.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1073,6 +1155,8 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var Point_1 = require("./Point");
 
 var MovesHistory =
 /*#__PURE__*/
@@ -1103,9 +1187,9 @@ function () {
     }
   }, {
     key: "getPreviousPoint",
-    value: function getPreviousPoint(player) {
+    value: function getPreviousPoint(point) {
       for (var i = this.history.length - 1; i >= 0; i--) {
-        if (this.history[i].player === player) return this.history[i].from;
+        if (Point_1.arePointsEqual(this.history[i].to, point)) return this.history[i].from;
       }
 
       return null;
@@ -1116,7 +1200,7 @@ function () {
 }();
 
 exports.MovesHistory = MovesHistory;
-},{}],"app/index.ts":[function(require,module,exports) {
+},{"./Point":"app/game/Point.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1169,7 +1253,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64567" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54066" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
