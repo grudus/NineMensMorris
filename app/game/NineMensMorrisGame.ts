@@ -7,6 +7,8 @@ import { GameMoveEngine } from './GameMoveEngine';
 import { GameMoveResult } from './GameMoveResult';
 import { Move, MovesHistory } from './MovesHistory';
 
+const POINTS_TO_ENABLE_FLYING = 3;
+
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
     public static readonly BOARD_SIZE = 7;
@@ -119,6 +121,9 @@ export class NineMensMorrisGame {
     }
 
     public findNeighbours(point: Point): Point[] {
+        if (this.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
+            return this.board.filter(p => p.player === Player.NO_PLAYER).map(p => p.point);
+        }
         const { colsInLine, rowsInLine } = this.findColsAndRowsInLine(point);
         const neighbours: Point[] = this.findNearestPoints(point, colsInLine, rowsInLine);
         this.filterNeighboursImpossibleToGo(point, neighbours);
