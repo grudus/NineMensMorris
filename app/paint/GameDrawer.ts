@@ -45,7 +45,7 @@ export class GameDrawer {
             case GameMoveResult.CANNOT_MOVE:
                 break;
         }
-        this.afterUpdate();
+        this.afterUpdate(gameMoveResult);
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {

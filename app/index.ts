@@ -9,7 +9,7 @@ import { GameInfoWriter } from './paint/GameInfoWriter';
     const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
     const infoWriter = new GameInfoWriter(game);
-    const drawer = new GameDrawer(canvas, game, () => infoWriter.update());
+    const drawer = new GameDrawer(canvas, game, type => infoWriter.update(type));
 
     infoWriter.update();
 })();
