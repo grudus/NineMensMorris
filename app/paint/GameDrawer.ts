@@ -1,6 +1,6 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { BoardPosition } from '../game/BoardPosition';
-import { Point, point } from '../game/Point';
+import { arePointsEqual, Point, point } from '../game/Point';
 import { GameCanvasContext } from './GameCanvasContext';
 import { Player } from '../game/Player';
 import { GameMoveResult } from '../game/GameMoveResult';
@@ -10,6 +10,7 @@ export class GameDrawer {
     private readonly squareSize: number;
     private readonly boardColor = '#212121';
     private readonly gameCanvas: GameCanvasContext;
+    private selectablePoints: Point[];
 
     public constructor(
         private canvas: HTMLCanvasElement,
@@ -24,11 +25,11 @@ export class GameDrawer {
         this.gameCanvas = new GameCanvasContext(canvas.getContext('2d'), this.squareSize);
 
         this.drawInitialCanvas();
+        this.selectablePoints = this.game.findSelectablePoints();
     }
 
     private onMouseClick(point: Point) {
         const gameMoveResult = this.game.tryToMakeMove(point);
-        console.log(gameMoveResult);
 
         switch (gameMoveResult) {
             case GameMoveResult.SUCCESSFUL_MOVE:
@@ -50,6 +51,7 @@ export class GameDrawer {
                 break;
         }
         this.afterUpdate(gameMoveResult);
+        this.selectablePoints = this.game.findSelectablePoints(point);
     }
 
     private fitToContainer(canvas: HTMLCanvasElement) {
@@ -130,6 +132,13 @@ export class GameDrawer {
             const pos = getMousePos(canvas, e);
             const point = this.gameCanvas.getPoint(pos);
             this.onMouseClick(point);
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const pos = getMousePos(canvas, e);
+            const point = this.gameCanvas.getPoint(pos);
+            const isSelectable = this.selectablePoints.some(p => arePointsEqual(p, point));
+            canvas.style.cursor = isSelectable ? 'pointer' : 'default';
         });
     }
 }

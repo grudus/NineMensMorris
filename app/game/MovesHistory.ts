@@ -1,4 +1,4 @@
-import { Point } from './Point';
+import { arePointsEqual, Point } from './Point';
 import { Player } from './Player';
 
 export class MovesHistory {
@@ -16,9 +16,9 @@ export class MovesHistory {
         return this.history;
     }
 
-    public getPreviousPoint(player: Player): Point | null {
+    public getPreviousPoint(point: Point): Point | null {
         for (let i = this.history.length - 1; i >= 0; i--) {
-            if (this.history[i].player === player) return this.history[i].from;
+            if (arePointsEqual(this.history[i].to, point)) return this.history[i].from;
         }
         return null;
     }

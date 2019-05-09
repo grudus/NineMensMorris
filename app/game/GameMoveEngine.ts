@@ -1,6 +1,6 @@
 import { NineMensMorrisGame } from './NineMensMorrisGame';
 import { arePointsEqual, Point } from './Point';
-import { GamePhase } from './GamePhase';
+import { GameState } from './GameState';
 import { GameMoveResult } from './GameMoveResult';
 import { Player } from './Player';
 
@@ -10,9 +10,12 @@ export class GameMoveEngine {
     public constructor(private game: NineMensMorrisGame) {}
 
     public makeMove(point: Point): GameMoveResult {
+        if (this.game.isGameOver()) {
+            return;
+        }
         if (this.game.isMill()) {
             return this.makeMillMove(point);
-        } else if (this.game.currentPhase == GamePhase.INITIAL) {
+        } else if (this.game.currentState == GameState.INITIAL) {
             return this.makeInitialMove(point);
         } else {
             return this.makeMoveInNormalPhase(point);
@@ -46,6 +49,7 @@ export class GameMoveEngine {
             return GameMoveResult.CANNOT_MOVE;
         }
         this.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };
+        this.game.setState(GameState.MOVE_SELECTED_POINT);
         return GameMoveResult.FIRST_MOVE_PART;
     }
 
@@ -54,6 +58,7 @@ export class GameMoveEngine {
 
         if (!pointToMove) {
             this.currentMove = null;
+            this.game.setState(GameState.SELECT_POINT_TO_MOVE);
             return GameMoveResult.RESTART_MOVE;
         }
 

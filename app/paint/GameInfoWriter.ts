@@ -2,30 +2,29 @@ import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { getPaintablePlayer } from './PaintablePlayer';
 import { GameMoveResult } from '../game/GameMoveResult';
 import { Player } from '../game/Player';
+import { GameState } from '../game/GameState';
 
 export class GameInfoWriter {
     private readonly currentPlayerText = document.getElementById('current-player-text');
-    private readonly moveTypeText = document.getElementById('current-move-info');
+    private readonly moveTypeText = document.getElementById('game-state');
     private readonly playerPoints = {
         [Player.PLAYER_1]: document.getElementById('player-1-points'),
         [Player.PLAYER_2]: document.getElementById('player-2-points'),
     };
 
-    private readonly moveTypeToLabel = {
-        [GameMoveResult.MILL]: 'Mill',
-        [GameMoveResult.CANNOT_MOVE]: 'Cannot move',
-        [GameMoveResult.FIRST_MOVE_PART]: 'First move',
-        [GameMoveResult.RESTART_MOVE]: 'Restart',
-        [GameMoveResult.SUCCESSFUL_MOVE]: 'Successful move',
-        [GameMoveResult.INVALID_MILL_MOVE]: 'Invalid mill move',
-        [GameMoveResult.OPPONENT_DESTROYED]: 'Opponent destroyed',
+    private readonly gameStateToText = {
+        [GameState.INITIAL]: 'Initial',
+        [GameState.MOVE_SELECTED_POINT]: 'Move point',
+        [GameState.SELECT_POINT_TO_MOVE]: 'Select point',
+        [GameState.MILL]: 'Mill',
+        [GameState.GAME_OVER]: 'The end',
     };
 
     public constructor(private game: NineMensMorrisGame) {}
 
     public update(gameMoveResult?: GameMoveResult) {
         this.updateCurrentPlayerText();
-        this.updateMoveInfo(gameMoveResult);
+        this.updateGameState();
         this.updateHistoryMoves();
         this.updatePoints();
     }
@@ -36,8 +35,8 @@ export class GameInfoWriter {
         this.currentPlayerText.style.color = paintablePlayer.color;
     }
 
-    private updateMoveInfo(gameMoveResult?: GameMoveResult) {
-        this.moveTypeText.innerText = this.moveTypeToLabel[gameMoveResult] || 'None';
+    private updateGameState() {
+        this.moveTypeText.innerText = this.gameStateToText[this.game.currentState] || 'Unknown state';
     }
 
     private updateHistoryMoves() {

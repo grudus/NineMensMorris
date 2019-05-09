@@ -2,12 +2,13 @@ import { nextPlayer, Player } from './Player';
 import { BoardPosition } from './BoardPosition';
 import { arePointsEqual, Point } from './Point';
 import * as InitialGameHelper from './InitialGameHelper';
-import { GamePhase } from './GamePhase';
+import { GameState } from './GameState';
 import { GameMoveEngine } from './GameMoveEngine';
 import { GameMoveResult } from './GameMoveResult';
 import { Move, MovesHistory } from './MovesHistory';
 
 const POINTS_TO_ENABLE_FLYING = 3;
+const POINTS_TO_GAME_OVER = 2;
 
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
@@ -18,6 +19,8 @@ export class NineMensMorrisGame {
     private currentPlayerMove = Player.PLAYER_1;
     private gameMoveEngine: GameMoveEngine;
     private millPlayer?: Player = null;
+    private gameState: GameState = GameState.INITIAL;
+    private prevState: GameState = GameState.INITIAL;
     public readonly playerPoints = { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 };
 
     private cannotGoPoints = [
@@ -43,7 +46,9 @@ export class NineMensMorrisGame {
     public setNextPlayerMove() {
         if (this.initialHandQueue.length) {
             this.currentPlayerMove = this.initialHandQueue.pop();
+            this.setState(this.initialHandQueue.length ? GameState.INITIAL : GameState.SELECT_POINT_TO_MOVE);
         } else {
+            this.setState(GameState.SELECT_POINT_TO_MOVE);
             this.currentPlayerMove = nextPlayer(this.currentPlayerMove);
         }
     }
@@ -84,11 +89,18 @@ export class NineMensMorrisGame {
 
         const isMill = checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
         this.millPlayer = isMill ? this.currentPlayer : null;
+        if (isMill) {
+            this.setState(GameState.MILL);
+        }
         return isMill;
     }
 
     public isMill(): boolean {
         return this.millPlayer !== null;
+    }
+
+    public isGameOver(): boolean {
+        return this.gameState === GameState.GAME_OVER;
     }
 
     public isNoPlayer(point: Point): boolean {
@@ -110,7 +122,7 @@ export class NineMensMorrisGame {
     }
 
     public possibleMoves(point: Point): Point[] {
-        const previousPoint: Point = this.movesHistory.getPreviousPoint(this.currentPlayer);
+        const previousPoint: Point = this.movesHistory.getPreviousPoint(point);
         return this.findNeighbours(point)
             .filter(p => this.isNoPlayer(p))
             .filter(p => !(previousPoint && arePointsEqual(previousPoint, p)));
@@ -131,8 +143,14 @@ export class NineMensMorrisGame {
         return neighbours;
     }
 
-    public get currentPhase(): GamePhase {
-        return this.initialHandQueue.length ? GamePhase.INITIAL : GamePhase.NORMAL;
+    public get currentState(): GameState {
+        return this.gameState;
+    }
+
+    public setState(state: GameState) {
+        if (this.isGameOver()) return;
+        this.prevState = this.gameState;
+        this.gameState = state;
     }
 
     public get currentPlayer(): Player {
@@ -182,13 +200,33 @@ export class NineMensMorrisGame {
         });
     }
 
+    public findSelectablePoints(point?: Point): Point[] {
+        switch (this.currentState) {
+            case GameState.INITIAL:
+                return this.board.filter(p => p.player === Player.NO_PLAYER).map(p => p.point);
+            case GameState.SELECT_POINT_TO_MOVE:
+                return this.board.filter(p => p.player === this.currentPlayer).map(p => p.point);
+            case GameState.MILL:
+                return this.allOpponentPositions().map(p => p.point);
+            case GameState.MOVE_SELECTED_POINT:
+                return this.possibleMoves(point);
+            default:
+                return [];
+        }
+    }
+
     public removePoint(point: Point) {
         const boardPosition = this.findPosition(point);
         this.playerPoints[boardPosition.player]--;
         boardPosition.player = Player.NO_PLAYER;
+
+        if (Object.values(this.playerPoints).some(points => points === POINTS_TO_GAME_OVER)) {
+            this.setState(GameState.GAME_OVER);
+        }
     }
 
     public clearMill() {
+        this.setState(this.prevState);
         this.millPlayer = null;
     }
 
