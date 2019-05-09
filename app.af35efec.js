@@ -134,7 +134,7 @@ var Player;
 exports.nextPlayer = function (player) {
   return player === Player.PLAYER_1 ? Player.PLAYER_2 : Player.PLAYER_1;
 };
-},{}],"app/game/Point.ts":[function(require,module,exports) {
+},{}],"app/game/Coordinate.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -152,7 +152,7 @@ function point(row, col) {
 
 exports.point = point;
 
-function pointFromIndexes(row, col) {
+function coordinatesFromIndexes(row, col) {
   return {
     row: row + 1,
     col: String.fromCharCode(A_CODE + col),
@@ -160,13 +160,13 @@ function pointFromIndexes(row, col) {
   };
 }
 
-exports.pointFromIndexes = pointFromIndexes;
+exports.coordinatesFromIndexes = coordinatesFromIndexes;
 
-function arePointsEqual(point1, point2) {
-  return point1.row == point2.row && point1.col == point2.col;
+function areCoordsEquals(coord1, coord2) {
+  return coord1.row == coord2.row && coord1.col == coord2.col;
 }
 
-exports.arePointsEqual = arePointsEqual;
+exports.areCoordsEquals = areCoordsEquals;
 },{}],"app/game/InitialGameHelper.ts":[function(require,module,exports) {
 "use strict";
 
@@ -178,7 +178,7 @@ var Player_1 = require("./Player");
 
 var NineMensMorrisGame_1 = require("./NineMensMorrisGame");
 
-var Point_1 = require("./Point");
+var Coordinate_1 = require("./Coordinate");
 
 exports.initHandQueue = function () {
   var queue = [];
@@ -199,7 +199,7 @@ exports.initBoard = function () {
     columns[i - 1].forEach(function (col) {
       board.push({
         player: Player_1.Player.NO_PLAYER,
-        point: Point_1.point(i, col)
+        coordinate: Coordinate_1.point(i, col)
       });
     });
   };
@@ -210,7 +210,7 @@ exports.initBoard = function () {
 
   return board;
 };
-},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Point":"app/game/Point.ts"}],"app/game/GameState.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/game/GameState.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -255,7 +255,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var Point_1 = require("./Point");
+var Coordinate_1 = require("./Coordinate");
 
 var GameState_1 = require("./GameState");
 
@@ -314,7 +314,7 @@ function () {
   }, {
     key: "makeFirstMovePart",
     value: function makeFirstMovePart(point) {
-      var position = this.game.findPosition(point);
+      var position = this.game.boardService.position(point);
 
       if (!position || position.player !== this.game.currentPlayer) {
         return GameMoveResult_1.GameMoveResult.CANNOT_MOVE;
@@ -332,7 +332,7 @@ function () {
     key: "makeFinalMovePart",
     value: function makeFinalMovePart(point) {
       var pointToMove = this.currentMove.neighbours.find(function (p) {
-        return Point_1.arePointsEqual(p, point);
+        return Coordinate_1.areCoordsEquals(p, point);
       });
 
       if (!pointToMove) {
@@ -369,8 +369,16 @@ function () {
 }();
 
 exports.GameMoveEngine = GameMoveEngine;
-},{"./Point":"app/game/Point.ts","./GameState":"app/game/GameState.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
+},{"./Coordinate":"app/game/Coordinate.ts","./GameState":"app/game/GameState.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
 "use strict";
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -396,7 +404,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var Player_1 = require("./Player");
 
-var Point_1 = require("./Point");
+var Coordinate_1 = require("./Coordinate");
 
 var InitialGameHelper = __importStar(require("./InitialGameHelper"));
 
@@ -410,18 +418,19 @@ var POINTS_TO_GAME_OVER = 2;
 var NineMensMorrisGame =
 /*#__PURE__*/
 function () {
-  function NineMensMorrisGame(movesHistory) {
+  function NineMensMorrisGame(movesHistory, boardService) {
     var _this$playerPoints;
 
     _classCallCheck(this, NineMensMorrisGame);
 
     this.movesHistory = movesHistory;
+    this.boardService = boardService;
     this.currentPlayerMove = Player_1.Player.PLAYER_1;
     this.millPlayer = null;
     this.gameState = GameState_1.GameState.INITIAL;
     this.prevState = GameState_1.GameState.INITIAL;
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, 0), _this$playerPoints);
-    this.cannotGoPoints = [{
+    this.cannotGoCoordinates = [{
       from: {
         row: 4,
         col: 'c'
@@ -442,19 +451,16 @@ function () {
     }];
     this.gameMoveEngine = new GameMoveEngine_1.GameMoveEngine(this);
     this.initialHandQueue = InitialGameHelper.initHandQueue();
-    this.board = InitialGameHelper.initBoard();
   }
 
   _createClass(NineMensMorrisGame, [{
     key: "addInitialPoint",
-    value: function addInitialPoint(point) {
+    value: function addInitialPoint(coordinate) {
       if (this.initialHandQueue.length) {
-        var position = this.board.find(function (p) {
-          return Point_1.arePointsEqual(p.point, point);
-        });
+        var position = this.boardService.position(coordinate);
         position.player = position.player === Player_1.Player.NO_PLAYER ? this.currentPlayerMove : position.player;
         this.playerPoints[this.currentPlayer]++;
-        this.movesHistory.addInitialMove(point, this.currentPlayer);
+        this.movesHistory.addInitialMove(coordinate, this.currentPlayer);
       } else throw Error('Initial hand queue is empty!');
     }
   }, {
@@ -470,18 +476,14 @@ function () {
     }
   }, {
     key: "tryToMakeMove",
-    value: function tryToMakeMove(point) {
-      return this.gameMoveEngine.makeMove(point);
+    value: function tryToMakeMove(coordinate) {
+      return this.gameMoveEngine.makeMove(coordinate);
     }
   }, {
     key: "movePoint",
     value: function movePoint(from, to) {
-      var fromPosition = this.board.find(function (p) {
-        return Point_1.arePointsEqual(p.point, from);
-      });
-      var toPosition = this.board.find(function (p) {
-        return Point_1.arePointsEqual(p.point, to);
-      });
+      var fromPosition = this.boardService.position(from);
+      var toPosition = this.boardService.position(to);
 
       if (toPosition.player === Player_1.Player.NO_PLAYER) {
         toPosition.player = fromPosition.player;
@@ -495,14 +497,14 @@ function () {
     }
   }, {
     key: "detectMill",
-    value: function detectMill(changedPoint) {
-      var _this$findColsAndRows = this.findColsAndRowsInLine(changedPoint),
-          colsInLine = _this$findColsAndRows.colsInLine,
-          rowsInLine = _this$findColsAndRows.rowsInLine;
+    value: function detectMill(changedCoordinate) {
+      var _this$boardService$fi = this.boardService.findColsAndRowsInLine(changedCoordinate),
+          colsInLine = _this$boardService$fi.colsInLine,
+          rowsInLine = _this$boardService$fi.rowsInLine;
 
-      var checkMill = function checkMill(inLineArray, point) {
+      var checkMill = function checkMill(inLineArray, coordinate) {
         var inLineIndex = inLineArray.findIndex(function (p) {
-          return Point_1.arePointsEqual(p.point, point);
+          return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
         });
 
         for (var i = 0; i < inLineArray.length; i += 3) {
@@ -521,7 +523,7 @@ function () {
         return false;
       };
 
-      var isMill = checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
+      var isMill = checkMill(colsInLine, changedCoordinate) || checkMill(rowsInLine, changedCoordinate);
       this.millPlayer = isMill ? this.currentPlayer : null;
 
       if (isMill) {
@@ -536,27 +538,25 @@ function () {
       return this.millPlayer !== null;
     }
   }, {
+    key: "forEachBoardPosition",
+    value: function forEachBoardPosition(func) {
+      this.boardService.forEach(func);
+    }
+  }, {
     key: "isGameOver",
     value: function isGameOver() {
       return this.gameState === GameState_1.GameState.GAME_OVER;
     }
   }, {
     key: "isNoPlayer",
-    value: function isNoPlayer(point) {
-      var triedPosition = this.findPosition(point);
+    value: function isNoPlayer(coordinate) {
+      var triedPosition = this.boardService.position(coordinate);
       return triedPosition && triedPosition.player == Player_1.Player.NO_PLAYER;
-    }
-  }, {
-    key: "findPosition",
-    value: function findPosition(point) {
-      return this.board.find(function (p) {
-        return Point_1.arePointsEqual(p.point, point);
-      });
     }
   }, {
     key: "isOpponentPoint",
     value: function isOpponentPoint(point) {
-      var position = this.findPosition(point);
+      var position = this.boardService.position(point);
       return this.isOpponentPosition(position);
     }
   }, {
@@ -566,14 +566,14 @@ function () {
     }
   }, {
     key: "possibleMoves",
-    value: function possibleMoves(point) {
+    value: function possibleMoves(coordinate) {
       var _this = this;
 
-      var previousPoint = this.movesHistory.getPreviousPoint(point);
-      return this.findNeighbours(point).filter(function (p) {
+      var previousCoordinate = this.movesHistory.getPreviousCoordinate(this.currentPlayer, coordinate);
+      return this.findNeighbours(coordinate).filter(function (p) {
         return _this.isNoPlayer(p);
       }).filter(function (p) {
-        return !(previousPoint && Point_1.arePointsEqual(previousPoint, p));
+        return !(previousCoordinate && Coordinate_1.areCoordsEquals(previousCoordinate, p));
       });
     }
   }, {
@@ -581,27 +581,23 @@ function () {
     value: function allOpponentPositions() {
       var _this2 = this;
 
-      return this.board.filter(function (position) {
+      return this.boardService.filter(function (position) {
         return _this2.isOpponentPosition(position);
       });
     }
   }, {
     key: "findNeighbours",
-    value: function findNeighbours(point) {
+    value: function findNeighbours(coordinate) {
       if (this.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
-        return this.board.filter(function (p) {
-          return p.player === Player_1.Player.NO_PLAYER;
-        }).map(function (p) {
-          return p.point;
-        });
+        return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
       }
 
-      var _this$findColsAndRows2 = this.findColsAndRowsInLine(point),
-          colsInLine = _this$findColsAndRows2.colsInLine,
-          rowsInLine = _this$findColsAndRows2.rowsInLine;
+      var _this$boardService$fi2 = this.boardService.findColsAndRowsInLine(coordinate),
+          colsInLine = _this$boardService$fi2.colsInLine,
+          rowsInLine = _this$boardService$fi2.rowsInLine;
 
-      var neighbours = this.findNearestPoints(point, colsInLine, rowsInLine);
-      this.filterNeighboursImpossibleToGo(point, neighbours);
+      var neighbours = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
+      this.filterNeighboursImpossibleToGo(coordinate, neighbours);
       return neighbours;
     }
   }, {
@@ -612,54 +608,35 @@ function () {
       this.gameState = state;
     }
   }, {
-    key: "findColsAndRowsInLine",
-    value: function findColsAndRowsInLine(point) {
-      return this.board.reduce(function (acc, curr) {
-        if (Point_1.arePointsEqual(curr.point, point)) {
-          acc.rowsInLine.push(curr);
-          acc.colsInLine.push(curr);
-        } else if (curr.point.colIndex === point.colIndex) {
-          acc.colsInLine.push(curr);
-        } else if (curr.point.row === point.row) {
-          acc.rowsInLine.push(curr);
-        }
-
-        return acc;
-      }, {
-        colsInLine: [],
-        rowsInLine: []
-      });
-    }
-  }, {
     key: "findNearestPoints",
-    value: function findNearestPoints(point, colsInLine, rowsInLine) {
+    value: function findNearestPoints(coordinate, colsInLine, rowsInLine) {
       var sameColumnsIndex = colsInLine.findIndex(function (p) {
-        return Point_1.arePointsEqual(p.point, point);
+        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
       });
       var sameRowsIndex = rowsInLine.findIndex(function (p) {
-        return Point_1.arePointsEqual(p.point, point);
+        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
       });
       return [colsInLine[sameColumnsIndex + 1], colsInLine[sameColumnsIndex - 1], rowsInLine[sameRowsIndex + 1], rowsInLine[sameRowsIndex - 1]].filter(function (x) {
         return x;
       }).map(function (p) {
-        return p.point;
+        return p.coordinate;
       });
     }
   }, {
     key: "filterNeighboursImpossibleToGo",
-    value: function filterNeighboursImpossibleToGo(point, neighbours) {
-      this.cannotGoPoints.forEach(function (_ref) {
+    value: function filterNeighboursImpossibleToGo(coordinate, neighbours) {
+      this.cannotGoCoordinates.forEach(function (_ref) {
         var from = _ref.from,
             to = _ref.to;
 
-        if (Point_1.arePointsEqual(point, from)) {
+        if (Coordinate_1.areCoordsEquals(coordinate, from)) {
           var i = neighbours.findIndex(function (p) {
-            return Point_1.arePointsEqual(p, to);
+            return Coordinate_1.areCoordsEquals(p, to);
           });
           neighbours.splice(i, 1);
-        } else if (Point_1.arePointsEqual(point, to)) {
+        } else if (Coordinate_1.areCoordsEquals(coordinate, to)) {
           var _i = neighbours.findIndex(function (p) {
-            return Point_1.arePointsEqual(p, from);
+            return Coordinate_1.areCoordsEquals(p, from);
           });
 
           neighbours.splice(_i, 1);
@@ -667,32 +644,22 @@ function () {
       });
     }
   }, {
-    key: "findSelectablePoints",
-    value: function findSelectablePoints(point) {
-      var _this3 = this;
-
+    key: "findSelectableCoordinates",
+    value: function findSelectableCoordinates(coordinate) {
       switch (this.currentState) {
         case GameState_1.GameState.INITIAL:
-          return this.board.filter(function (p) {
-            return p.player === Player_1.Player.NO_PLAYER;
-          }).map(function (p) {
-            return p.point;
-          });
+          return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
 
         case GameState_1.GameState.SELECT_POINT_TO_MOVE:
-          return this.board.filter(function (p) {
-            return p.player === _this3.currentPlayer;
-          }).map(function (p) {
-            return p.point;
-          });
+          return this.boardService.findPlayerCoordinates(this.currentPlayer);
 
         case GameState_1.GameState.MILL:
           return this.allOpponentPositions().map(function (p) {
-            return p.point;
+            return p.coordinate;
           });
 
         case GameState_1.GameState.MOVE_SELECTED_POINT:
-          return this.possibleMoves(point);
+          return [].concat(_toConsumableArray(this.possibleMoves(coordinate)), _toConsumableArray(this.boardService.findPlayerCoordinates(this.currentPlayer)));
 
         default:
           return [];
@@ -701,7 +668,7 @@ function () {
   }, {
     key: "removePoint",
     value: function removePoint(point) {
-      var boardPosition = this.findPosition(point);
+      var boardPosition = this.boardService.position(point);
       this.playerPoints[boardPosition.player]--;
       boardPosition.player = Player_1.Player.NO_PLAYER;
 
@@ -740,7 +707,7 @@ function () {
 NineMensMorrisGame.NUMBER_OF_POINTS = 9;
 NineMensMorrisGame.BOARD_SIZE = 7;
 exports.NineMensMorrisGame = NineMensMorrisGame;
-},{"./Player":"app/game/Player.ts","./Point":"app/game/Point.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GameState":"app/game/GameState.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./Coordinate":"app/game/Coordinate.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GameState":"app/game/GameState.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -753,7 +720,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var Point_1 = require("../game/Point");
+var Coordinate_1 = require("../game/Coordinate");
 
 var GameCanvasContext =
 /*#__PURE__*/
@@ -773,13 +740,13 @@ function () {
     }
   }, {
     key: "moveTo",
-    value: function moveTo(point) {
-      this.ctx.moveTo(this.squareSize * point.colIndex + this.squareSize / 2, this.squareSize * (point.row - 1) + this.squareSize / 2);
+    value: function moveTo(coordinate) {
+      this.ctx.moveTo(this.squareSize * coordinate.colIndex + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
     }
   }, {
     key: "lineTo",
-    value: function lineTo(point) {
-      this.ctx.lineTo(this.squareSize * point.colIndex + this.squareSize / 2, this.squareSize * (point.row - 1) + this.squareSize / 2);
+    value: function lineTo(coordinate) {
+      this.ctx.lineTo(this.squareSize * coordinate.colIndex + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
     }
   }, {
     key: "strokeRect",
@@ -795,22 +762,15 @@ function () {
     }
   }, {
     key: "fillCircle",
-    value: function fillCircle(point, radius) {
-      this.drawCircle(point, radius);
+    value: function fillCircle(coordinate, radius) {
+      this.drawCircle(coordinate, radius);
       this.ctx.fill();
     }
   }, {
     key: "strokeCircle",
-    value: function strokeCircle(point, radius) {
-      this.drawCircle(point, radius);
+    value: function strokeCircle(coordinate, radius) {
+      this.drawCircle(coordinate, radius);
       this.ctx.stroke();
-    }
-  }, {
-    key: "clearCircle",
-    value: function clearCircle(point, radius) {
-      this.drawCircle(point, radius);
-      this.ctx.clip();
-      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
   }, {
     key: "clearAll",
@@ -819,17 +779,17 @@ function () {
       this.ctx.beginPath();
     }
   }, {
-    key: "getPoint",
-    value: function getPoint(pos) {
+    key: "getCoordinate",
+    value: function getCoordinate(pos) {
       var row = Math.floor(pos.y / this.squareSize);
       var col = Math.floor(pos.x / this.squareSize);
-      return Point_1.pointFromIndexes(row, col);
+      return Coordinate_1.coordinatesFromIndexes(row, col);
     }
   }, {
     key: "drawCircle",
-    value: function drawCircle(point, radius) {
-      var xPosition = point.colIndex * this.squareSize + this.squareSize / 2;
-      var yPosition = (point.row - 1) * this.squareSize + this.squareSize / 2;
+    value: function drawCircle(coordinate, radius) {
+      var xPosition = coordinate.colIndex * this.squareSize + this.squareSize / 2;
+      var yPosition = (coordinate.row - 1) * this.squareSize + this.squareSize / 2;
       this.ctx.beginPath();
       this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);
     }
@@ -839,7 +799,7 @@ function () {
 }();
 
 exports.GameCanvasContext = GameCanvasContext;
-},{"../game/Point":"app/game/Point.ts"}],"app/paint/PaintablePlayer.ts":[function(require,module,exports) {
+},{"../game/Coordinate":"app/game/Coordinate.ts"}],"app/paint/PaintablePlayer.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -883,7 +843,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var NineMensMorrisGame_1 = require("../game/NineMensMorrisGame");
 
-var Point_1 = require("../game/Point");
+var Coordinate_1 = require("../game/Coordinate");
 
 var GameCanvasContext_1 = require("./GameCanvasContext");
 
@@ -908,7 +868,7 @@ function () {
     this.squareSize = canvas.width / NineMensMorrisGame_1.NineMensMorrisGame.BOARD_SIZE;
     this.gameCanvas = new GameCanvasContext_1.GameCanvasContext(canvas.getContext('2d'), this.squareSize);
     this.drawInitialCanvas();
-    this.selectablePoints = this.game.findSelectablePoints();
+    this.selectablePoints = this.game.findSelectableCoordinates();
   }
 
   _createClass(GameDrawer, [{
@@ -941,7 +901,7 @@ function () {
       }
 
       this.afterUpdate(gameMoveResult);
-      this.selectablePoints = this.game.findSelectablePoints(point);
+      this.selectablePoints = this.game.findSelectableCoordinates(point);
     }
   }, {
     key: "fitToContainer",
@@ -962,17 +922,17 @@ function () {
     value: function drawDots() {
       var _this = this;
 
-      this.game.board.forEach(function (board) {
+      this.game.forEachBoardPosition(function (board) {
         var paintable = PaintablePlayer_1.getPaintablePlayer(board.player);
 
         if (board.player === Player_1.Player.NO_PLAYER) {
           _this.gameCanvas.setColor(_this.boardColor);
 
-          _this.gameCanvas.fillCircle(board.point, paintable.radius);
+          _this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
         } else {
           _this.gameCanvas.setColor(paintable.color);
 
-          _this.gameCanvas.fillCircle(board.point, paintable.radius);
+          _this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
         }
       });
     }
@@ -991,7 +951,7 @@ function () {
       var _this3 = this;
 
       this.game.allOpponentPositions().forEach(function (position) {
-        _this3.gameCanvas.strokeCircle(position.point, 15);
+        _this3.gameCanvas.strokeCircle(position.coordinate, 15);
       });
     }
   }, {
@@ -1004,17 +964,17 @@ function () {
     key: "drawLines",
     value: function drawLines() {
       this.gameCanvas.setColor(this.boardColor);
-      this.gameCanvas.strokeRect(Point_1.point(1, 'a'), Point_1.point(7, 'g'));
-      this.gameCanvas.strokeRect(Point_1.point(2, 'b'), Point_1.point(6, 'f'));
-      this.gameCanvas.strokeRect(Point_1.point(3, 'c'), Point_1.point(5, 'e'));
-      this.gameCanvas.moveTo(Point_1.point(1, 'd'));
-      this.gameCanvas.lineTo(Point_1.point(3, 'd'));
-      this.gameCanvas.moveTo(Point_1.point(5, 'd'));
-      this.gameCanvas.lineTo(Point_1.point(7, 'd'));
-      this.gameCanvas.moveTo(Point_1.point(4, 'a'));
-      this.gameCanvas.lineTo(Point_1.point(4, 'c'));
-      this.gameCanvas.moveTo(Point_1.point(4, 'e'));
-      this.gameCanvas.lineTo(Point_1.point(4, 'g'));
+      this.gameCanvas.strokeRect(Coordinate_1.point(1, 'a'), Coordinate_1.point(7, 'g'));
+      this.gameCanvas.strokeRect(Coordinate_1.point(2, 'b'), Coordinate_1.point(6, 'f'));
+      this.gameCanvas.strokeRect(Coordinate_1.point(3, 'c'), Coordinate_1.point(5, 'e'));
+      this.gameCanvas.moveTo(Coordinate_1.point(1, 'd'));
+      this.gameCanvas.lineTo(Coordinate_1.point(3, 'd'));
+      this.gameCanvas.moveTo(Coordinate_1.point(5, 'd'));
+      this.gameCanvas.lineTo(Coordinate_1.point(7, 'd'));
+      this.gameCanvas.moveTo(Coordinate_1.point(4, 'a'));
+      this.gameCanvas.lineTo(Coordinate_1.point(4, 'c'));
+      this.gameCanvas.moveTo(Coordinate_1.point(4, 'e'));
+      this.gameCanvas.lineTo(Coordinate_1.point(4, 'g'));
       this.gameCanvas.stroke();
     }
   }, {
@@ -1033,17 +993,17 @@ function () {
       canvas.addEventListener('click', function (e) {
         var pos = getMousePos(canvas, e);
 
-        var point = _this4.gameCanvas.getPoint(pos);
+        var point = _this4.gameCanvas.getCoordinate(pos);
 
         _this4.onMouseClick(point);
       });
       canvas.addEventListener('mousemove', function (e) {
         var pos = getMousePos(canvas, e);
 
-        var point = _this4.gameCanvas.getPoint(pos);
+        var point = _this4.gameCanvas.getCoordinate(pos);
 
         var isSelectable = _this4.selectablePoints.some(function (p) {
-          return Point_1.arePointsEqual(p, point);
+          return Coordinate_1.areCoordsEquals(p, point);
         });
 
         canvas.style.cursor = isSelectable ? 'pointer' : 'default';
@@ -1055,7 +1015,7 @@ function () {
 }();
 
 exports.GameDrawer = GameDrawer;
-},{"../game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","../game/Point":"app/game/Point.ts","./GameCanvasContext":"app/paint/GameCanvasContext.ts","../game/Player":"app/game/Player.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","./PaintablePlayer":"app/paint/PaintablePlayer.ts"}],"app/paint/GameInfoWriter.ts":[function(require,module,exports) {
+},{"../game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","../game/Coordinate":"app/game/Coordinate.ts","./GameCanvasContext":"app/paint/GameCanvasContext.ts","../game/Player":"app/game/Player.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","./PaintablePlayer":"app/paint/PaintablePlayer.ts"}],"app/paint/GameInfoWriter.ts":[function(require,module,exports) {
 "use strict";
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
@@ -1096,7 +1056,7 @@ function () {
     this.currentPlayerText = document.getElementById('current-player-text');
     this.moveTypeText = document.getElementById('game-state');
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, document.getElementById('player-1-points')), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, document.getElementById('player-2-points')), _this$playerPoints);
-    this.gameStateToText = (_this$gameStateToText = {}, _defineProperty(_this$gameStateToText, GameState_1.GameState.INITIAL, 'Initial'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MOVE_SELECTED_POINT, 'Move point'), _defineProperty(_this$gameStateToText, GameState_1.GameState.SELECT_POINT_TO_MOVE, 'Select point'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MILL, 'Mill'), _defineProperty(_this$gameStateToText, GameState_1.GameState.GAME_OVER, 'The end'), _this$gameStateToText);
+    this.gameStateToText = (_this$gameStateToText = {}, _defineProperty(_this$gameStateToText, GameState_1.GameState.INITIAL, 'Initial'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MOVE_SELECTED_POINT, 'Move coordinate'), _defineProperty(_this$gameStateToText, GameState_1.GameState.SELECT_POINT_TO_MOVE, 'Select coordinate'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MILL, 'Mill'), _defineProperty(_this$gameStateToText, GameState_1.GameState.GAME_OVER, 'The end'), _this$gameStateToText);
   }
 
   _createClass(GameInfoWriter, [{
@@ -1156,7 +1116,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var Point_1 = require("./Point");
+var Coordinate_1 = require("./Coordinate");
 
 var MovesHistory =
 /*#__PURE__*/
@@ -1174,9 +1134,9 @@ function () {
     }
   }, {
     key: "addInitialMove",
-    value: function addInitialMove(point, player) {
+    value: function addInitialMove(coordinate, player) {
       this.addMove({
-        to: point,
+        to: coordinate,
         player: player
       });
     }
@@ -1186,10 +1146,10 @@ function () {
       return this.history;
     }
   }, {
-    key: "getPreviousPoint",
-    value: function getPreviousPoint(point) {
+    key: "getPreviousCoordinate",
+    value: function getPreviousCoordinate(player, coordinate) {
       for (var i = this.history.length - 1; i >= 0; i--) {
-        if (Point_1.arePointsEqual(this.history[i].to, point)) return this.history[i].from;
+        if (this.history[i].player === player) return Coordinate_1.areCoordsEquals(this.history[i].to, coordinate) ? this.history[i].from : null;
       }
 
       return null;
@@ -1200,7 +1160,84 @@ function () {
 }();
 
 exports.MovesHistory = MovesHistory;
-},{"./Point":"app/game/Point.ts"}],"app/index.ts":[function(require,module,exports) {
+},{"./Coordinate":"app/game/Coordinate.ts"}],"app/game/BoardService.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var InitialGameHelper_1 = require("./InitialGameHelper");
+
+var Coordinate_1 = require("./Coordinate");
+
+var BoardService =
+/*#__PURE__*/
+function () {
+  function BoardService() {
+    _classCallCheck(this, BoardService);
+
+    this.board = InitialGameHelper_1.initBoard();
+  }
+
+  _createClass(BoardService, [{
+    key: "position",
+    value: function position(point) {
+      return this.board.find(function (p) {
+        return Coordinate_1.areCoordsEquals(p.coordinate, point);
+      });
+    }
+  }, {
+    key: "filter",
+    value: function filter(predicate) {
+      return this.board.filter(predicate);
+    }
+  }, {
+    key: "findPlayerCoordinates",
+    value: function findPlayerCoordinates(player) {
+      return this.filter(function (pos) {
+        return pos.player === player;
+      }).map(function (p) {
+        return p.coordinate;
+      });
+    }
+  }, {
+    key: "findColsAndRowsInLine",
+    value: function findColsAndRowsInLine(point) {
+      return this.board.reduce(function (acc, curr) {
+        if (Coordinate_1.areCoordsEquals(curr.coordinate, point)) {
+          acc.rowsInLine.push(curr);
+          acc.colsInLine.push(curr);
+        } else if (curr.coordinate.colIndex === point.colIndex) {
+          acc.colsInLine.push(curr);
+        } else if (curr.coordinate.row === point.row) {
+          acc.rowsInLine.push(curr);
+        }
+
+        return acc;
+      }, {
+        colsInLine: [],
+        rowsInLine: []
+      });
+    }
+  }, {
+    key: "forEach",
+    value: function forEach(func) {
+      this.board.forEach(func);
+    }
+  }]);
+
+  return BoardService;
+}();
+
+exports.BoardService = BoardService;
+},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1215,9 +1252,11 @@ var GameInfoWriter_1 = require("./paint/GameInfoWriter");
 
 var MovesHistory_1 = require("./game/MovesHistory");
 
+var BoardService_1 = require("./game/BoardService");
+
 (function () {
   console.log("HELLO IN THE NINE MEN'S MORRIS GAME");
-  var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory());
+  var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), new BoardService_1.BoardService());
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
   var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (type) {
@@ -1225,7 +1264,7 @@ var MovesHistory_1 = require("./game/MovesHistory");
   });
   infoWriter.update();
 })();
-},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1253,7 +1292,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54066" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64275" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
