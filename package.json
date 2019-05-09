@@ -6,7 +6,8 @@
   "scripts": {
     "start": "parcel index.html && parcel watch index.html",
     "build": "parcel build index.html --public-url ./",
-    "deploy": "npm run build && npm version patch  && cd dist && git add . && git commit -am 'Add files' && git push"
+    "deploy": "npm run build && npm version patch  && cd dist && git add . && git commit -am 'Add files' && git push",
+    "postdeploy": "git push"
   },
   "keywords": [
     "nine-mens-morris",
