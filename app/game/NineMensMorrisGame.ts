@@ -23,11 +23,6 @@ export class NineMensMorrisGame {
     private prevState: GameState = GameState.INITIAL;
     public readonly playerPoints = { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 };
 
-    private cannotGoCoordinates = [
-        { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
-        { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
-    ];
-
     public constructor(private movesHistory: MovesHistory, public boardService: BoardService) {
         this.gameMoveEngine = new GameMoveEngine(this);
         this.initialHandQueue = InitialGameHelper.initHandQueue();
@@ -135,11 +130,7 @@ export class NineMensMorrisGame {
         if (this.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
             return this.boardService.findPlayerCoordinates(Player.NO_PLAYER);
         }
-        const { colsInLine, rowsInLine } = this.boardService.findColsAndRowsInLine(coordinate);
-        const neighbours: Coordinate[] = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
-        this.filterNeighboursImpossibleToGo(coordinate, neighbours);
-
-        return neighbours;
+        return this.boardService.findNeighbours(coordinate);
     }
 
     public get currentState(): GameState {
@@ -154,36 +145,6 @@ export class NineMensMorrisGame {
 
     public get currentPlayer(): Player {
         return this.currentPlayerMove;
-    }
-
-    private findNearestPoints(
-        coordinate: Coordinate,
-        colsInLine: BoardPosition[],
-        rowsInLine: BoardPosition[],
-    ): Coordinate[] {
-        const sameColumnsIndex = colsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
-        const sameRowsIndex = rowsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
-
-        return [
-            colsInLine[sameColumnsIndex + 1],
-            colsInLine[sameColumnsIndex - 1],
-            rowsInLine[sameRowsIndex + 1],
-            rowsInLine[sameRowsIndex - 1],
-        ]
-            .filter(x => x)
-            .map(p => p.coordinate);
-    }
-
-    private filterNeighboursImpossibleToGo(coordinate: Coordinate, neighbours: Coordinate[]) {
-        this.cannotGoCoordinates.forEach(({ from, to }) => {
-            if (areCoordsEquals(coordinate, from)) {
-                const i = neighbours.findIndex(p => areCoordsEquals(p, to));
-                neighbours.splice(i, 1);
-            } else if (areCoordsEquals(coordinate, to)) {
-                const i = neighbours.findIndex(p => areCoordsEquals(p, from));
-                neighbours.splice(i, 1);
-            }
-        });
     }
 
     public findSelectableCoordinates(coordinate?: Coordinate): Coordinate[] {

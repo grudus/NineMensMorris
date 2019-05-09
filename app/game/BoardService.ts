@@ -6,6 +6,11 @@ import { Player } from './Player';
 export class BoardService {
     private readonly board: BoardPosition[];
 
+    private readonly cannotGoCoordinates = [
+        { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
+        { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
+    ];
+
     public constructor() {
         this.board = initBoard();
     }
@@ -41,6 +46,44 @@ export class BoardService {
 
     public forEach(func: (pos: BoardPosition) => void) {
         this.board.forEach(func);
+    }
+
+    public findNeighbours(coordinate: Coordinate): Coordinate[] {
+        const { colsInLine, rowsInLine } = this.findColsAndRowsInLine(coordinate);
+        const neighbours: Coordinate[] = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
+        this.filterNeighboursImpossibleToGo(coordinate, neighbours);
+
+        return neighbours;
+    }
+
+    private filterNeighboursImpossibleToGo(coordinate: Coordinate, neighbours: Coordinate[]) {
+        this.cannotGoCoordinates.forEach(({ from, to }) => {
+            if (areCoordsEquals(coordinate, from)) {
+                const i = neighbours.findIndex(p => areCoordsEquals(p, to));
+                neighbours.splice(i, 1);
+            } else if (areCoordsEquals(coordinate, to)) {
+                const i = neighbours.findIndex(p => areCoordsEquals(p, from));
+                neighbours.splice(i, 1);
+            }
+        });
+    }
+
+    private findNearestPoints(
+        coordinate: Coordinate,
+        colsInLine: BoardPosition[],
+        rowsInLine: BoardPosition[],
+    ): Coordinate[] {
+        const sameColumnsIndex = colsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
+        const sameRowsIndex = rowsInLine.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
+
+        return [
+            colsInLine[sameColumnsIndex + 1],
+            colsInLine[sameColumnsIndex - 1],
+            rowsInLine[sameRowsIndex + 1],
+            rowsInLine[sameRowsIndex - 1],
+        ]
+            .filter(x => x)
+            .map(p => p.coordinate);
     }
 }
 
