@@ -5,6 +5,7 @@ import * as InitialGameHelper from './InitialGameHelper';
 import { GamePhase } from './GamePhase';
 import { GameMoveEngine } from './GameMoveEngine';
 import { GameMoveResult } from './GameMoveResult';
+import { Move, MovesHistory } from './MovesHistory';
 
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
@@ -21,7 +22,7 @@ export class NineMensMorrisGame {
         { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
     ];
 
-    public constructor() {
+    public constructor(private movesHistory: MovesHistory) {
         this.gameMoveEngine = new GameMoveEngine(this);
         this.initialHandQueue = InitialGameHelper.initHandQueue();
         this.board = InitialGameHelper.initBoard();
@@ -31,6 +32,7 @@ export class NineMensMorrisGame {
         if (this.initialHandQueue.length) {
             const position = this.board.find(p => arePointsEqual(p.point, point));
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
+            this.movesHistory.addInitialMove(point, this.currentPlayer);
         } else throw Error('Initial hand queue is empty!');
     }
 
@@ -53,6 +55,8 @@ export class NineMensMorrisGame {
         if (toPosition.player === Player.NO_PLAYER) {
             toPosition.player = fromPosition.player;
             fromPosition.player = Player.NO_PLAYER;
+
+            this.movesHistory.addMove({ from, to, player: this.currentPlayer });
         }
     }
 
@@ -102,7 +106,10 @@ export class NineMensMorrisGame {
     }
 
     public possibleMoves(point: Point): Point[] {
-        return this.findNeighbours(point).filter(p => this.isNoPlayer(p));
+        const previousPoint: Point = this.movesHistory.getPreviousPoint(this.currentPlayer);
+        return this.findNeighbours(point)
+            .filter(p => this.isNoPlayer(p))
+            .filter(p => !(previousPoint && arePointsEqual(previousPoint, p)));
     }
 
     public allOpponentPositions(): BoardPosition[] {
@@ -174,6 +181,10 @@ export class NineMensMorrisGame {
 
     public clearMill() {
         this.millPlayer = null;
+    }
+
+    public getMovesHistory(): Move[] {
+        return this.movesHistory.getHistory();
     }
 }
 

@@ -21,6 +21,7 @@ export class GameInfoWriter {
     public update(gameMoveResult?: GameMoveResult) {
         this.updateCurrentPlayerText();
         this.updateMoveInfo(gameMoveResult);
+        this.updateHistoryMoves();
     }
 
     private updateCurrentPlayerText() {
@@ -31,5 +32,9 @@ export class GameInfoWriter {
 
     private updateMoveInfo(gameMoveResult?: GameMoveResult) {
         this.moveTypeText.innerText = this.moveTypeToLabel[gameMoveResult] || 'None';
+    }
+
+    private updateHistoryMoves() {
+        console.log(this.game.getMovesHistory());
     }
 }

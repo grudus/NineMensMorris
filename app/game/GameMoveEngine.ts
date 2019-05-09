@@ -45,7 +45,7 @@ export class GameMoveEngine {
         if (!position || position.player !== this.game.currentPlayer) {
             return GameMoveResult.CANNOT_MOVE;
         }
-        this.currentMove = { point, neighbours: this.game.findNeighbours(point), player: this.game.currentPlayer };
+        this.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };
         return GameMoveResult.FIRST_MOVE_PART;
     }
 
