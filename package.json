@@ -7,6 +7,8 @@
     "start": "parcel index.html && parcel watch index.html",
     "build": "parcel build index.html --public-url ./",
     "deploy": "npm run build && npm version patch  && cd dist && git add . && git commit -am 'Add files' && git push",
+    "deploy:minor": "npm run build && npm version minor  && cd dist && git add . && git commit -am 'Add files' && git push",
+    "deploy:major": "npm run build && npm version major  && cd dist && git add . && git commit -am 'Add files' && git push",
     "postdeploy": "git push"
   },
   "keywords": [
