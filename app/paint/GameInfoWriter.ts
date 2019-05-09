@@ -1,10 +1,15 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { getPaintablePlayer } from './PaintablePlayer';
 import { GameMoveResult } from '../game/GameMoveResult';
+import { Player } from '../game/Player';
 
 export class GameInfoWriter {
     private readonly currentPlayerText = document.getElementById('current-player-text');
     private readonly moveTypeText = document.getElementById('current-move-info');
+    private readonly playerPoints = {
+        [Player.PLAYER_1]: document.getElementById('player-1-points'),
+        [Player.PLAYER_2]: document.getElementById('player-2-points'),
+    };
 
     private readonly moveTypeToLabel = {
         [GameMoveResult.MILL]: 'Mill',
@@ -22,6 +27,7 @@ export class GameInfoWriter {
         this.updateCurrentPlayerText();
         this.updateMoveInfo(gameMoveResult);
         this.updateHistoryMoves();
+        this.updatePoints();
     }
 
     private updateCurrentPlayerText() {
@@ -36,5 +42,11 @@ export class GameInfoWriter {
 
     private updateHistoryMoves() {
         console.log(this.game.getMovesHistory());
+    }
+
+    private updatePoints() {
+        Object.entries(this.game.playerPoints).forEach(([player, points]) => {
+            this.playerPoints[player].innerText = points + '';
+        });
     }
 }

@@ -16,6 +16,7 @@ export class NineMensMorrisGame {
     private currentPlayerMove = Player.PLAYER_1;
     private gameMoveEngine: GameMoveEngine;
     private millPlayer?: Player = null;
+    public readonly playerPoints = { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 };
 
     private cannotGoPoints = [
         { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
@@ -32,6 +33,7 @@ export class NineMensMorrisGame {
         if (this.initialHandQueue.length) {
             const position = this.board.find(p => arePointsEqual(p.point, point));
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
+            this.playerPoints[this.currentPlayer]++;
             this.movesHistory.addInitialMove(point, this.currentPlayer);
         } else throw Error('Initial hand queue is empty!');
     }
@@ -176,7 +178,9 @@ export class NineMensMorrisGame {
     }
 
     public removePoint(point: Point) {
-        this.findPosition(point).player = Player.NO_PLAYER;
+        const boardPosition = this.findPosition(point);
+        this.playerPoints[boardPosition.player]--;
+        boardPosition.player = Player.NO_PLAYER;
     }
 
     public clearMill() {
