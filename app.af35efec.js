@@ -430,25 +430,6 @@ function () {
     this.gameState = GameState_1.GameState.INITIAL;
     this.prevState = GameState_1.GameState.INITIAL;
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, 0), _this$playerPoints);
-    this.cannotGoCoordinates = [{
-      from: {
-        row: 4,
-        col: 'c'
-      },
-      to: {
-        row: 4,
-        col: 'e'
-      }
-    }, {
-      from: {
-        row: 3,
-        col: 'd'
-      },
-      to: {
-        row: 5,
-        col: 'd'
-      }
-    }];
     this.gameMoveEngine = new GameMoveEngine_1.GameMoveEngine(this);
     this.initialHandQueue = InitialGameHelper.initHandQueue();
   }
@@ -592,13 +573,7 @@ function () {
         return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
       }
 
-      var _this$boardService$fi2 = this.boardService.findColsAndRowsInLine(coordinate),
-          colsInLine = _this$boardService$fi2.colsInLine,
-          rowsInLine = _this$boardService$fi2.rowsInLine;
-
-      var neighbours = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
-      this.filterNeighboursImpossibleToGo(coordinate, neighbours);
-      return neighbours;
+      return this.boardService.findNeighbours(coordinate);
     }
   }, {
     key: "setState",
@@ -606,42 +581,6 @@ function () {
       if (this.isGameOver()) return;
       this.prevState = this.gameState;
       this.gameState = state;
-    }
-  }, {
-    key: "findNearestPoints",
-    value: function findNearestPoints(coordinate, colsInLine, rowsInLine) {
-      var sameColumnsIndex = colsInLine.findIndex(function (p) {
-        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
-      });
-      var sameRowsIndex = rowsInLine.findIndex(function (p) {
-        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
-      });
-      return [colsInLine[sameColumnsIndex + 1], colsInLine[sameColumnsIndex - 1], rowsInLine[sameRowsIndex + 1], rowsInLine[sameRowsIndex - 1]].filter(function (x) {
-        return x;
-      }).map(function (p) {
-        return p.coordinate;
-      });
-    }
-  }, {
-    key: "filterNeighboursImpossibleToGo",
-    value: function filterNeighboursImpossibleToGo(coordinate, neighbours) {
-      this.cannotGoCoordinates.forEach(function (_ref) {
-        var from = _ref.from,
-            to = _ref.to;
-
-        if (Coordinate_1.areCoordsEquals(coordinate, from)) {
-          var i = neighbours.findIndex(function (p) {
-            return Coordinate_1.areCoordsEquals(p, to);
-          });
-          neighbours.splice(i, 1);
-        } else if (Coordinate_1.areCoordsEquals(coordinate, to)) {
-          var _i = neighbours.findIndex(function (p) {
-            return Coordinate_1.areCoordsEquals(p, from);
-          });
-
-          neighbours.splice(_i, 1);
-        }
-      });
     }
   }, {
     key: "findSelectableCoordinates",
@@ -1183,6 +1122,25 @@ function () {
   function BoardService() {
     _classCallCheck(this, BoardService);
 
+    this.cannotGoCoordinates = [{
+      from: {
+        row: 4,
+        col: 'c'
+      },
+      to: {
+        row: 4,
+        col: 'e'
+      }
+    }, {
+      from: {
+        row: 3,
+        col: 'd'
+      },
+      to: {
+        row: 5,
+        col: 'd'
+      }
+    }];
     this.board = InitialGameHelper_1.initBoard();
   }
 
@@ -1230,6 +1188,53 @@ function () {
     key: "forEach",
     value: function forEach(func) {
       this.board.forEach(func);
+    }
+  }, {
+    key: "findNeighbours",
+    value: function findNeighbours(coordinate) {
+      var _this$findColsAndRows = this.findColsAndRowsInLine(coordinate),
+          colsInLine = _this$findColsAndRows.colsInLine,
+          rowsInLine = _this$findColsAndRows.rowsInLine;
+
+      var neighbours = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
+      this.filterNeighboursImpossibleToGo(coordinate, neighbours);
+      return neighbours;
+    }
+  }, {
+    key: "filterNeighboursImpossibleToGo",
+    value: function filterNeighboursImpossibleToGo(coordinate, neighbours) {
+      this.cannotGoCoordinates.forEach(function (_ref) {
+        var from = _ref.from,
+            to = _ref.to;
+
+        if (Coordinate_1.areCoordsEquals(coordinate, from)) {
+          var i = neighbours.findIndex(function (p) {
+            return Coordinate_1.areCoordsEquals(p, to);
+          });
+          neighbours.splice(i, 1);
+        } else if (Coordinate_1.areCoordsEquals(coordinate, to)) {
+          var _i = neighbours.findIndex(function (p) {
+            return Coordinate_1.areCoordsEquals(p, from);
+          });
+
+          neighbours.splice(_i, 1);
+        }
+      });
+    }
+  }, {
+    key: "findNearestPoints",
+    value: function findNearestPoints(coordinate, colsInLine, rowsInLine) {
+      var sameColumnsIndex = colsInLine.findIndex(function (p) {
+        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
+      });
+      var sameRowsIndex = rowsInLine.findIndex(function (p) {
+        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
+      });
+      return [colsInLine[sameColumnsIndex + 1], colsInLine[sameColumnsIndex - 1], rowsInLine[sameRowsIndex + 1], rowsInLine[sameRowsIndex - 1]].filter(function (x) {
+        return x;
+      }).map(function (p) {
+        return p.coordinate;
+      });
     }
   }]);
 
