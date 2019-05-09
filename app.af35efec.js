@@ -231,11 +231,11 @@ Object.defineProperty(exports, "__esModule", {
 var GameMoveResult;
 
 (function (GameMoveResult) {
-  GameMoveResult["SUCCESSFUL_MOVE"] = "SUCCESSFUL_MOVE";
-  GameMoveResult["FIRST_MOVE_PART"] = "FIRST_MOVE_PART";
-  GameMoveResult["RESTART_MOVE"] = "RESTART_MOVE";
-  GameMoveResult["CANNOT_MOVE"] = "CANNOT_MOVE";
-  GameMoveResult["MILL"] = "MILL";
+  GameMoveResult[GameMoveResult["SUCCESSFUL_MOVE"] = 0] = "SUCCESSFUL_MOVE";
+  GameMoveResult[GameMoveResult["FIRST_MOVE_PART"] = 1] = "FIRST_MOVE_PART";
+  GameMoveResult[GameMoveResult["RESTART_MOVE"] = 2] = "RESTART_MOVE";
+  GameMoveResult[GameMoveResult["CANNOT_MOVE"] = 3] = "CANNOT_MOVE";
+  GameMoveResult[GameMoveResult["MILL"] = 4] = "MILL";
 })(GameMoveResult = exports.GameMoveResult || (exports.GameMoveResult = {}));
 },{}],"app/game/GameMoveEngine.ts":[function(require,module,exports) {
 "use strict";
@@ -759,7 +759,7 @@ function () {
           break;
       }
 
-      this.afterUpdate();
+      this.afterUpdate(gameMoveResult);
     }
   }, {
     key: "fitToContainer",
@@ -856,6 +856,8 @@ exports.GameDrawer = GameDrawer;
 },{"../game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","../game/Point":"app/game/Point.ts","./GameCanvasContext":"app/paint/GameCanvasContext.ts","../game/Player":"app/game/Player.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","./PaintablePlayer":"app/paint/PaintablePlayer.ts"}],"app/paint/GameInfoWriter.ts":[function(require,module,exports) {
 "use strict";
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -868,20 +870,27 @@ Object.defineProperty(exports, "__esModule", {
 
 var PaintablePlayer_1 = require("./PaintablePlayer");
 
+var GameMoveResult_1 = require("../game/GameMoveResult");
+
 var GameInfoWriter =
 /*#__PURE__*/
 function () {
   function GameInfoWriter(game) {
+    var _this$moveTypeToLabel;
+
     _classCallCheck(this, GameInfoWriter);
 
     this.game = game;
     this.currentPlayerText = document.getElementById('current-player-text');
+    this.moveTypeText = document.getElementById('current-move-info');
+    this.moveTypeToLabel = (_this$moveTypeToLabel = {}, _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.MILL, 'Mill'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.CANNOT_MOVE, 'Cannot move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART, 'First move'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.RESTART_MOVE, 'Restart'), _defineProperty(_this$moveTypeToLabel, GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE, 'Successfull move'), _this$moveTypeToLabel);
   }
 
   _createClass(GameInfoWriter, [{
     key: "update",
-    value: function update() {
+    value: function update(gameMoveResult) {
       this.updateCurrentPlayerText();
+      this.updateMoveInfo(gameMoveResult);
     }
   }, {
     key: "updateCurrentPlayerText",
@@ -890,13 +899,18 @@ function () {
       this.currentPlayerText.innerText = paintablePlayer.label;
       this.currentPlayerText.style.color = paintablePlayer.color;
     }
+  }, {
+    key: "updateMoveInfo",
+    value: function updateMoveInfo(gameMoveResult) {
+      this.moveTypeText.innerText = this.moveTypeToLabel[gameMoveResult] || 'None';
+    }
   }]);
 
   return GameInfoWriter;
 }();
 
 exports.GameInfoWriter = GameInfoWriter;
-},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts"}],"app/index.ts":[function(require,module,exports) {
+},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -914,8 +928,8 @@ var GameInfoWriter_1 = require("./paint/GameInfoWriter");
   var game = new NineMensMorrisGame_1.NineMensMorrisGame();
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
-  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function () {
-    return infoWriter.update();
+  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (type) {
+    return infoWriter.update(type);
   });
   infoWriter.update();
 })();
@@ -947,7 +961,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51446" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57841" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
