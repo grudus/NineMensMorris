@@ -1,5 +1,5 @@
 export enum GameMoveResult {
-    SUCCESSFULL_MOVE,
+    SUCCESSFUL_MOVE,
     FIRST_MOVE_PART,
     RESTART_MOVE,
     CANNOT_MOVE,

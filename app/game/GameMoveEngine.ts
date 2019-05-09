@@ -30,7 +30,7 @@ export class GameMoveEngine {
             return GameMoveResult.MILL;
         }
         this.game.setNextPlayerMove();
-        return GameMoveResult.SUCCESSFULL_MOVE;
+        return GameMoveResult.SUCCESSFUL_MOVE;
     }
 
     private makeMoveInNormalPhase(point: Point): GameMoveResult {
@@ -63,7 +63,7 @@ export class GameMoveEngine {
             return GameMoveResult.MILL;
         }
         this.game.setNextPlayerMove();
-        return GameMoveResult.SUCCESSFULL_MOVE;
+        return GameMoveResult.SUCCESSFUL_MOVE;
     }
 
     private makeMillMove(point: Point): GameMoveResult {

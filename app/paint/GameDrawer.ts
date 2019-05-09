@@ -31,7 +31,7 @@ export class GameDrawer {
         console.log(gameMoveResult);
 
         switch (gameMoveResult) {
-            case GameMoveResult.SUCCESSFULL_MOVE:
+            case GameMoveResult.SUCCESSFUL_MOVE:
             case GameMoveResult.OPPONENT_DESTROYED:
                 this.resetCanvasAndDrawGame();
                 break;
