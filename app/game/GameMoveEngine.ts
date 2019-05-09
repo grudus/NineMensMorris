@@ -10,7 +10,9 @@ export class GameMoveEngine {
     public constructor(private game: NineMensMorrisGame) {}
 
     public makeMove(point: Point): GameMoveResult {
-        if (this.game.currentPhase == GamePhase.INITIAL) {
+        if (this.game.isMill()) {
+            return this.makeMillMove(point);
+        } else if (this.game.currentPhase == GamePhase.INITIAL) {
             return this.makeInitialMove(point);
         } else {
             return this.makeMoveInNormalPhase(point);
@@ -18,11 +20,17 @@ export class GameMoveEngine {
     }
 
     private makeInitialMove(point: Point) {
-        if (this.game.isNoPlayer(point)) {
-            this.game.addInitialPoint(point);
-            return this.game.isMill(point) ? GameMoveResult.MILL : GameMoveResult.SUCCESSFUL_MOVE;
+        if (!this.game.isNoPlayer(point)) {
+            return GameMoveResult.CANNOT_MOVE;
         }
-        return GameMoveResult.CANNOT_MOVE;
+
+        this.game.addInitialPoint(point);
+
+        if (this.game.detectMill(point)) {
+            return GameMoveResult.MILL;
+        }
+        this.game.setNextPlayerMove();
+        return GameMoveResult.SUCCESSFULL_MOVE;
     }
 
     private makeMoveInNormalPhase(point: Point): GameMoveResult {
@@ -51,7 +59,21 @@ export class GameMoveEngine {
 
         this.game.movePoint(this.currentMove.point, point);
         this.currentMove = null;
-        return this.game.isMill(point) ? GameMoveResult.MILL : GameMoveResult.SUCCESSFUL_MOVE;
+        if (this.game.detectMill(point)) {
+            return GameMoveResult.MILL;
+        }
+        this.game.setNextPlayerMove();
+        return GameMoveResult.SUCCESSFULL_MOVE;
+    }
+
+    private makeMillMove(point: Point): GameMoveResult {
+        if (this.game.isOpponentPoint(point)) {
+            this.game.removePoint(point);
+            this.game.clearMill();
+            this.game.setNextPlayerMove();
+            return GameMoveResult.OPPONENT_DESTROYED;
+        }
+        return GameMoveResult.INVALID_MILL_MOVE;
     }
 }
 

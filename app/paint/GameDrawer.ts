@@ -31,8 +31,8 @@ export class GameDrawer {
         console.log(gameMoveResult);
 
         switch (gameMoveResult) {
-            case GameMoveResult.SUCCESSFUL_MOVE:
-            case GameMoveResult.MILL:
+            case GameMoveResult.SUCCESSFULL_MOVE:
+            case GameMoveResult.OPPONENT_DESTROYED:
                 this.resetCanvasAndDrawGame();
                 break;
             case GameMoveResult.FIRST_MOVE_PART:
@@ -41,6 +41,10 @@ export class GameDrawer {
             case GameMoveResult.RESTART_MOVE:
                 this.resetCanvasAndDrawGame();
                 this.onMouseClick(point);
+                break;
+            case GameMoveResult.MILL:
+                this.resetCanvasAndDrawGame();
+                this.drawPossibleMillMoves();
                 break;
             case GameMoveResult.CANNOT_MOVE:
                 break;
@@ -77,6 +81,12 @@ export class GameDrawer {
     private drawPossibleMoves(point: Point) {
         this.game.possibleMoves(point).forEach(point => {
             this.gameCanvas.strokeCircle(point, 15);
+        });
+    }
+
+    private drawPossibleMillMoves() {
+        this.game.allOpponentPositions().forEach(position => {
+            this.gameCanvas.strokeCircle(position.point, 15);
         });
     }
 

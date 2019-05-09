@@ -11,7 +11,9 @@ export class GameInfoWriter {
         [GameMoveResult.CANNOT_MOVE]: 'Cannot move',
         [GameMoveResult.FIRST_MOVE_PART]: 'First move',
         [GameMoveResult.RESTART_MOVE]: 'Restart',
-        [GameMoveResult.SUCCESSFUL_MOVE]: 'Successfull move',
+        [GameMoveResult.SUCCESSFULL_MOVE]: 'Successfull move',
+        [GameMoveResult.INVALID_MILL_MOVE]: 'Invalid mill move',
+        [GameMoveResult.OPPONENT_DESTROYED]: 'Opponent destroyed',
     };
 
     public constructor(private game: NineMensMorrisGame) {}

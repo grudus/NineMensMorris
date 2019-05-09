@@ -14,6 +14,7 @@ export class NineMensMorrisGame {
     private initialHandQueue: Player[];
     private currentPlayerMove = Player.PLAYER_1;
     private gameMoveEngine: GameMoveEngine;
+    private millPlayer?: Player = null;
 
     private cannotGoPoints = [
         { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
@@ -30,8 +31,15 @@ export class NineMensMorrisGame {
         if (this.initialHandQueue.length) {
             const position = this.board.find(p => arePointsEqual(p.point, point));
             position.player = position.player === Player.NO_PLAYER ? this.currentPlayerMove : position.player;
-            this.currentPlayerMove = this.initialHandQueue.pop();
         } else throw Error('Initial hand queue is empty!');
+    }
+
+    public setNextPlayerMove() {
+        if (this.initialHandQueue.length) {
+            this.currentPlayerMove = this.initialHandQueue.pop();
+        } else {
+            this.currentPlayerMove = nextPlayer(this.currentPlayerMove);
+        }
     }
 
     public tryToMakeMove(point: Point): GameMoveResult {
@@ -45,11 +53,10 @@ export class NineMensMorrisGame {
         if (toPosition.player === Player.NO_PLAYER) {
             toPosition.player = fromPosition.player;
             fromPosition.player = Player.NO_PLAYER;
-            this.currentPlayerMove = nextPlayer(this.currentPlayerMove);
         }
     }
 
-    public isMill(changedPoint: Point): boolean {
+    public detectMill(changedPoint: Point): boolean {
         const { colsInLine, rowsInLine } = this.findColsAndRowsInLine(changedPoint);
 
         const checkMill = (inLineArray: BoardPosition[], point: Point): boolean => {
@@ -67,7 +74,13 @@ export class NineMensMorrisGame {
             return false;
         };
 
-        return checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
+        const isMill = checkMill(colsInLine, changedPoint) || checkMill(rowsInLine, changedPoint);
+        this.millPlayer = isMill ? this.currentPlayer : null;
+        return isMill;
+    }
+
+    public isMill(): boolean {
+        return this.millPlayer !== null;
     }
 
     public isNoPlayer(point: Point): boolean {
@@ -79,8 +92,21 @@ export class NineMensMorrisGame {
         return this.board.find(p => arePointsEqual(p.point, point));
     }
 
+    public isOpponentPoint(point: Point): boolean {
+        const position = this.findPosition(point);
+        return this.isOpponentPosition(position);
+    }
+
+    private isOpponentPosition(position) {
+        return position && position.player != Player.NO_PLAYER && position.player != this.currentPlayer;
+    }
+
     public possibleMoves(point: Point): Point[] {
         return this.findNeighbours(point).filter(p => this.isNoPlayer(p));
+    }
+
+    public allOpponentPositions(): BoardPosition[] {
+        return this.board.filter((position: BoardPosition) => this.isOpponentPosition(position));
     }
 
     public findNeighbours(point: Point): Point[] {
@@ -140,6 +166,14 @@ export class NineMensMorrisGame {
                 neighbours.splice(i, 1);
             }
         });
+    }
+
+    public removePoint(point: Point) {
+        this.findPosition(point).player = Player.NO_PLAYER;
+    }
+
+    public clearMill() {
+        this.millPlayer = null;
     }
 }
 
