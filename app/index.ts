@@ -26,7 +26,6 @@ function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, state: NineMensMorri
         .filter(a => a && a.move);
     const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 
-
     game.resetState(state);
     game.tryToMakeMove(move.move);
     move.nextMoves.forEach((a: Coordinate) => {
@@ -44,10 +43,16 @@ function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, state: NineMensMorri
 
     const minMaxAlgorithm = new MinMaxAlgorithm(new PlayerRemainingPointsHeuristic(), game);
 
-    const drawer = new GameDrawer(canvas, game, (result: GameMoveResult) => {
+    const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
         const state = game.getState();
-        if (NEXT_PLAYER_RESULTS.includes(result)) makeComputerMove(minMaxAlgorithm, state, game);
         infoWriter.update();
+        if (NEXT_PLAYER_RESULTS.includes(result)) {
+            setTimeout(() => {
+                makeComputerMove(minMaxAlgorithm, state, game);
+                infoWriter.update();
+                redrawFunc();
+            }, 10);
+        }
     });
 
     infoWriter.update();

@@ -5,6 +5,7 @@ import { Tree, TreeNode } from '../tree/Tree';
 import { GameNodeValue } from '../tree/GameNodeValue';
 import { Coordinate } from '../game/Coordinate';
 import { GameMoveResult } from '../game/GameMoveResult';
+import { GameState } from '../game/GameState';
 
 export class MinMaxAlgorithm {
     public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame) {}
@@ -12,7 +13,10 @@ export class MinMaxAlgorithm {
     public minMax(state: NineMensMorrisState, currentPlayer: Player): Tree<GameNodeValue> {
         const tree: Tree<GameNodeValue> = new Tree();
         tree.root = new TreeNode<GameNodeValue>({ evaluation: 0, move: null, validMove: false }, null);
-        this._minMax(state, 3, currentPlayer, true, tree.root, currentPlayer);
+
+        const depth = state.gameState === GameState.INITIAL ? 3 : 4;
+
+        this._minMax(state, depth, currentPlayer, true, tree.root, currentPlayer);
         return tree;
     }
 

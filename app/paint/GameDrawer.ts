@@ -10,6 +10,7 @@ export class GameDrawer {
     private readonly boardColor = '#212121';
     private readonly gameCanvas: GameCanvasContext;
     private selectablePoints: Coordinate[];
+    private humanPlayers = [Player.PLAYER_1];
 
     public constructor(
         private canvas: HTMLCanvasElement,
@@ -28,6 +29,10 @@ export class GameDrawer {
     }
 
     private onMouseClick(point: Coordinate) {
+        if (!this.humanPlayers.includes(this.game.currentPlayer)) {
+            console.log('NOW IS COMPUTER TURN!');
+            return;
+        }
         const gameMoveResult = this.game.tryToMakeMove(point);
 
         switch (gameMoveResult) {
@@ -35,8 +40,7 @@ export class GameDrawer {
             case GameMoveResult.OPPONENT_DESTROYED:
                 this.resetCanvasAndDrawGame();
                 setTimeout(() => {
-                    this.afterUpdate(gameMoveResult);
-                    this.resetCanvasAndDrawGame();
+                    this.afterUpdate(gameMoveResult, () => this.resetCanvasAndDrawGame());
                 });
                 break;
             case GameMoveResult.FIRST_MOVE_PART:
