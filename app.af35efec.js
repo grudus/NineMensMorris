@@ -126,9 +126,9 @@ Object.defineProperty(exports, "__esModule", {
 var Player;
 
 (function (Player) {
-  Player[Player["PLAYER_1"] = 0] = "PLAYER_1";
-  Player[Player["PLAYER_2"] = 1] = "PLAYER_2";
-  Player[Player["NO_PLAYER"] = 2] = "NO_PLAYER";
+  Player["PLAYER_1"] = "PLAYER_1";
+  Player["PLAYER_2"] = "PLAYER_2";
+  Player["NO_PLAYER"] = "NO_PLAYER";
 })(Player = exports.Player || (exports.Player = {}));
 
 exports.nextPlayer = function (player) {
@@ -140,33 +140,35 @@ exports.nextPlayer = function (player) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var A_CODE = 'a'.charCodeAt(0);
 
-function point(row, col) {
+function coord(row, col) {
   return {
     row: row,
-    col: col,
-    colIndex: col.charCodeAt(0) - A_CODE
+    col: col
   };
 }
 
-exports.point = point;
-
-function coordinatesFromIndexes(row, col) {
-  return {
-    row: row + 1,
-    col: String.fromCharCode(A_CODE + col),
-    colIndex: col
-  };
-}
-
-exports.coordinatesFromIndexes = coordinatesFromIndexes;
+exports.coord = coord;
 
 function areCoordsEquals(coord1, coord2) {
   return coord1.row == coord2.row && coord1.col == coord2.col;
 }
 
 exports.areCoordsEquals = areCoordsEquals;
+
+function hash(point) {
+  return (point.row << 10) + point.col;
+}
+
+exports.hash = hash;
+
+function fromHash(hash) {
+  var col = hash % 1024;
+  var row = hash - col >> 10;
+  return coord(row, col);
+}
+
+exports.fromHash = fromHash;
 },{}],"app/game/InitialGameHelper.ts":[function(require,module,exports) {
 "use strict";
 
@@ -192,15 +194,12 @@ exports.initHandQueue = function () {
 };
 
 exports.initBoard = function () {
-  var columns = [['a', 'd', 'g'], ['b', 'd', 'f'], ['c', 'd', 'e'], ['a', 'b', 'c', 'e', 'f', 'g'], ['c', 'd', 'e'], ['b', 'd', 'f'], ['a', 'd', 'g']];
-  var board = [];
+  var columns = [[1, 4, 7], [2, 4, 6], [3, 4, 5], [1, 2, 3, 5, 6, 7], [3, 4, 5], [2, 4, 6], [1, 4, 7]];
+  var board = new Map();
 
   var _loop = function _loop(i) {
     columns[i - 1].forEach(function (col) {
-      board.push({
-        player: Player_1.Player.NO_PLAYER,
-        coordinate: Coordinate_1.point(i, col)
-      });
+      board.set(Coordinate_1.hash(Coordinate_1.coord(i, col)), Player_1.Player.NO_PLAYER);
     });
   };
 
@@ -219,11 +218,11 @@ Object.defineProperty(exports, "__esModule", {
 var GameState;
 
 (function (GameState) {
-  GameState[GameState["INITIAL"] = 0] = "INITIAL";
-  GameState[GameState["SELECT_POINT_TO_MOVE"] = 1] = "SELECT_POINT_TO_MOVE";
-  GameState[GameState["MOVE_SELECTED_POINT"] = 2] = "MOVE_SELECTED_POINT";
-  GameState[GameState["MILL"] = 3] = "MILL";
-  GameState[GameState["GAME_OVER"] = 4] = "GAME_OVER";
+  GameState["INITIAL"] = "INITIAL";
+  GameState["SELECT_POINT_TO_MOVE"] = "SELECT_POINT_TO_MOVE";
+  GameState["MOVE_SELECTED_POINT"] = "MOVE_SELECTED_POINT";
+  GameState["MILL"] = "MILL";
+  GameState["GAME_OVER"] = "GAME_OVER";
 })(GameState = exports.GameState || (exports.GameState = {}));
 },{}],"app/game/GameMoveResult.ts":[function(require,module,exports) {
 "use strict";
@@ -234,14 +233,17 @@ Object.defineProperty(exports, "__esModule", {
 var GameMoveResult;
 
 (function (GameMoveResult) {
-  GameMoveResult[GameMoveResult["SUCCESSFUL_MOVE"] = 0] = "SUCCESSFUL_MOVE";
-  GameMoveResult[GameMoveResult["FIRST_MOVE_PART"] = 1] = "FIRST_MOVE_PART";
-  GameMoveResult[GameMoveResult["RESTART_MOVE"] = 2] = "RESTART_MOVE";
-  GameMoveResult[GameMoveResult["CANNOT_MOVE"] = 3] = "CANNOT_MOVE";
-  GameMoveResult[GameMoveResult["MILL"] = 4] = "MILL";
-  GameMoveResult[GameMoveResult["OPPONENT_DESTROYED"] = 5] = "OPPONENT_DESTROYED";
-  GameMoveResult[GameMoveResult["INVALID_MILL_MOVE"] = 6] = "INVALID_MILL_MOVE";
+  GameMoveResult["SUCCESSFUL_MOVE"] = "SUCCESSFUL_MOVE";
+  GameMoveResult["FIRST_MOVE_PART"] = "FIRST_MOVE_PART";
+  GameMoveResult["RESTART_MOVE"] = "RESTART_MOVE";
+  GameMoveResult["CANNOT_MOVE"] = "CANNOT_MOVE";
+  GameMoveResult["MILL"] = "MILL";
+  GameMoveResult["OPPONENT_DESTROYED"] = "OPPONENT_DESTROYED";
+  GameMoveResult["INVALID_MILL_MOVE"] = "INVALID_MILL_MOVE";
 })(GameMoveResult = exports.GameMoveResult || (exports.GameMoveResult = {}));
+
+exports.NEXT_PLAYER_RESULTS = [GameMoveResult.SUCCESSFUL_MOVE, GameMoveResult.OPPONENT_DESTROYED];
+exports.PARTIAL_MOVES = [GameMoveResult.FIRST_MOVE_PART, GameMoveResult.MILL];
 },{}],"app/game/GameMoveEngine.ts":[function(require,module,exports) {
 "use strict";
 
@@ -268,7 +270,6 @@ function () {
     _classCallCheck(this, GameMoveEngine);
 
     this.game = game;
-    this.currentMove = null;
   }
 
   _createClass(GameMoveEngine, [{
@@ -305,7 +306,7 @@ function () {
   }, {
     key: "makeMoveInNormalPhase",
     value: function makeMoveInNormalPhase(point) {
-      if (!this.currentMove) {
+      if (!this.game.currentMove) {
         return this.makeFirstMovePart(point);
       }
 
@@ -314,13 +315,13 @@ function () {
   }, {
     key: "makeFirstMovePart",
     value: function makeFirstMovePart(point) {
-      var position = this.game.boardService.position(point);
+      var player = this.game.boardService.playerAt(point);
 
-      if (!position || position.player !== this.game.currentPlayer) {
+      if (!player || player !== this.game.currentPlayer) {
         return GameMoveResult_1.GameMoveResult.CANNOT_MOVE;
       }
 
-      this.currentMove = {
+      this.game.currentMove = {
         point: point,
         neighbours: this.game.possibleMoves(point),
         player: this.game.currentPlayer
@@ -331,18 +332,18 @@ function () {
   }, {
     key: "makeFinalMovePart",
     value: function makeFinalMovePart(point) {
-      var pointToMove = this.currentMove.neighbours.find(function (p) {
+      var pointToMove = this.game.currentMove.neighbours.find(function (p) {
         return Coordinate_1.areCoordsEquals(p, point);
       });
 
       if (!pointToMove) {
-        this.currentMove = null;
+        this.game.currentMove = null;
         this.game.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
         return GameMoveResult_1.GameMoveResult.RESTART_MOVE;
       }
 
-      this.game.movePoint(this.currentMove.point, point);
-      this.currentMove = null;
+      this.game.movePoint(this.game.currentMove.point, point);
+      this.game.currentMove = null;
 
       if (this.game.detectMill(point)) {
         return GameMoveResult_1.GameMoveResult.MILL;
@@ -372,13 +373,7 @@ exports.GameMoveEngine = GameMoveEngine;
 },{"./Coordinate":"app/game/Coordinate.ts","./GameState":"app/game/GameState.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
 "use strict";
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
-
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
-
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
-
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -419,40 +414,83 @@ var NineMensMorrisGame =
 /*#__PURE__*/
 function () {
   function NineMensMorrisGame(movesHistory, boardService) {
-    var _this$playerPoints;
-
     _classCallCheck(this, NineMensMorrisGame);
 
     this.movesHistory = movesHistory;
     this.boardService = boardService;
-    this.currentPlayerMove = Player_1.Player.PLAYER_1;
-    this.millPlayer = null;
-    this.gameState = GameState_1.GameState.INITIAL;
-    this.prevState = GameState_1.GameState.INITIAL;
-    this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, 0), _this$playerPoints);
+    this.state = this.resetState();
     this.gameMoveEngine = new GameMoveEngine_1.GameMoveEngine(this);
-    this.initialHandQueue = InitialGameHelper.initHandQueue();
+    this.boardService.resetBoard(this.state.board);
   }
 
   _createClass(NineMensMorrisGame, [{
+    key: "resetState",
+    value: function resetState(state) {
+      var _playerPoints, _destroyedOpponents;
+
+      var newState = state || {
+        initialHandQueue: InitialGameHelper.initHandQueue(),
+        millPlayer: null,
+        gameState: GameState_1.GameState.INITIAL,
+        prevState: GameState_1.GameState.INITIAL,
+        playerPoints: (_playerPoints = {}, _defineProperty(_playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_playerPoints, Player_1.Player.PLAYER_2, 0), _playerPoints),
+        currentPlayerMove: Player_1.Player.PLAYER_1,
+        board: InitialGameHelper.initBoard(),
+        history: [],
+        destroyedOpponents: (_destroyedOpponents = {}, _defineProperty(_destroyedOpponents, Player_1.Player.PLAYER_1, 0), _defineProperty(_destroyedOpponents, Player_1.Player.PLAYER_2, 0), _destroyedOpponents),
+        currentMove: null
+      };
+      this.state = this.clone(newState);
+      this.boardService.resetBoard(this.state.board);
+      this.movesHistory.resetHistory(this.state.history);
+      return newState;
+    }
+  }, {
+    key: "getState",
+    value: function getState() {
+      return this.clone(this.state);
+    }
+  }, {
+    key: "clone",
+    value: function clone(obj) {
+      if (obj === null || _typeof(obj) !== 'object') return obj;
+
+      if (obj instanceof Map) {
+        return new Map(obj);
+      }
+
+      var temp = obj.constructor(); // changed
+
+      for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          obj['isActiveClone'] = null;
+          temp[key] = this.clone(obj[key]);
+          delete obj['isActiveClone'];
+        }
+      }
+
+      return temp;
+    }
+  }, {
     key: "addInitialPoint",
     value: function addInitialPoint(coordinate) {
-      if (this.initialHandQueue.length) {
-        var position = this.boardService.position(coordinate);
-        position.player = position.player === Player_1.Player.NO_PLAYER ? this.currentPlayerMove : position.player;
-        this.playerPoints[this.currentPlayer]++;
+      if (this.state.initialHandQueue.length) {
+        var player = this.boardService.playerAt(coordinate);
+        var newPlayer = player === Player_1.Player.NO_PLAYER ? this.state.currentPlayerMove : player;
+        this.boardService.setPlayer(coordinate, newPlayer);
+        this.state.playerPoints[this.currentPlayer]++;
         this.movesHistory.addInitialMove(coordinate, this.currentPlayer);
       } else throw Error('Initial hand queue is empty!');
     }
   }, {
     key: "setNextPlayerMove",
     value: function setNextPlayerMove() {
-      if (this.initialHandQueue.length) {
-        this.currentPlayerMove = this.initialHandQueue.pop();
-        this.setState(this.initialHandQueue.length ? GameState_1.GameState.INITIAL : GameState_1.GameState.SELECT_POINT_TO_MOVE);
+      if (this.state.initialHandQueue.length) {
+        this.state.currentPlayerMove = this.state.initialHandQueue.pop();
+        this.setState(this.state.initialHandQueue.length ? GameState_1.GameState.INITIAL : GameState_1.GameState.SELECT_POINT_TO_MOVE);
       } else {
         this.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
-        this.currentPlayerMove = Player_1.nextPlayer(this.currentPlayerMove);
+        this.state.currentPlayerMove = Player_1.nextPlayer(this.state.currentPlayerMove);
       }
     }
   }, {
@@ -463,12 +501,12 @@ function () {
   }, {
     key: "movePoint",
     value: function movePoint(from, to) {
-      var fromPosition = this.boardService.position(from);
-      var toPosition = this.boardService.position(to);
+      var fromPlayer = this.boardService.playerAt(from);
+      var toPlayer = this.boardService.playerAt(to);
 
-      if (toPosition.player === Player_1.Player.NO_PLAYER) {
-        toPosition.player = fromPosition.player;
-        fromPosition.player = Player_1.Player.NO_PLAYER;
+      if (toPlayer === Player_1.Player.NO_PLAYER) {
+        this.boardService.setPlayer(to, fromPlayer);
+        this.boardService.setPlayer(from, Player_1.Player.NO_PLAYER);
         this.movesHistory.addMove({
           from: from,
           to: to,
@@ -479,33 +517,8 @@ function () {
   }, {
     key: "detectMill",
     value: function detectMill(changedCoordinate) {
-      var _this$boardService$fi = this.boardService.findColsAndRowsInLine(changedCoordinate),
-          colsInLine = _this$boardService$fi.colsInLine,
-          rowsInLine = _this$boardService$fi.rowsInLine;
-
-      var checkMill = function checkMill(inLineArray, coordinate) {
-        var inLineIndex = inLineArray.findIndex(function (p) {
-          return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
-        });
-
-        for (var i = 0; i < inLineArray.length; i += 3) {
-          if (inLineIndex >= i && inLineIndex < i + 3) {
-            var currPlayer = inLineArray[inLineIndex].player;
-            var millCount = 0;
-
-            for (var j = 0; j < 3; j++) {
-              if (currPlayer == inLineArray[i + j].player) millCount++;
-            }
-
-            if (millCount == 3) return true;
-          }
-        }
-
-        return false;
-      };
-
-      var isMill = checkMill(colsInLine, changedCoordinate) || checkMill(rowsInLine, changedCoordinate);
-      this.millPlayer = isMill ? this.currentPlayer : null;
+      var isMill = this.boardService.isCoordinatePartOfMill(changedCoordinate);
+      this.state.millPlayer = isMill ? this.currentPlayer : null;
 
       if (isMill) {
         this.setState(GameState_1.GameState.MILL);
@@ -516,7 +529,7 @@ function () {
   }, {
     key: "isMill",
     value: function isMill() {
-      return this.millPlayer !== null;
+      return this.state.millPlayer !== null;
     }
   }, {
     key: "forEachBoardPosition",
@@ -526,24 +539,23 @@ function () {
   }, {
     key: "isGameOver",
     value: function isGameOver() {
-      return this.gameState === GameState_1.GameState.GAME_OVER;
+      return this.state.gameState === GameState_1.GameState.GAME_OVER;
     }
   }, {
     key: "isNoPlayer",
     value: function isNoPlayer(coordinate) {
-      var triedPosition = this.boardService.position(coordinate);
-      return triedPosition && triedPosition.player == Player_1.Player.NO_PLAYER;
+      return this.boardService.playerAt(coordinate) === Player_1.Player.NO_PLAYER;
     }
   }, {
     key: "isOpponentPoint",
     value: function isOpponentPoint(point) {
-      var position = this.boardService.position(point);
-      return this.isOpponentPosition(position);
+      var player = this.boardService.playerAt(point);
+      return this.isOpponentPosition(player);
     }
   }, {
     key: "isOpponentPosition",
-    value: function isOpponentPosition(position) {
-      return position && position.player != Player_1.Player.NO_PLAYER && position.player != this.currentPlayer;
+    value: function isOpponentPosition(player) {
+      return player && player != Player_1.Player.NO_PLAYER && player != this.currentPlayer;
     }
   }, {
     key: "possibleMoves",
@@ -562,14 +574,14 @@ function () {
     value: function allOpponentPositions() {
       var _this2 = this;
 
-      return this.boardService.filter(function (position) {
-        return _this2.isOpponentPosition(position);
+      return this.boardService.filterForCoordinates(function (player) {
+        return _this2.isOpponentPosition(player);
       });
     }
   }, {
     key: "findNeighbours",
     value: function findNeighbours(coordinate) {
-      if (this.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
+      if (this.state.playerPoints[this.currentPlayer] === POINTS_TO_ENABLE_FLYING) {
         return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
       }
 
@@ -579,8 +591,8 @@ function () {
     key: "setState",
     value: function setState(state) {
       if (this.isGameOver()) return;
-      this.prevState = this.gameState;
-      this.gameState = state;
+      if (state !== GameState_1.GameState.MOVE_SELECTED_POINT) this.state.prevState = this.state.gameState;
+      this.state.gameState = state;
     }
   }, {
     key: "findSelectableCoordinates",
@@ -593,12 +605,10 @@ function () {
           return this.boardService.findPlayerCoordinates(this.currentPlayer);
 
         case GameState_1.GameState.MILL:
-          return this.allOpponentPositions().map(function (p) {
-            return p.coordinate;
-          });
+          return this.allOpponentPositions();
 
         case GameState_1.GameState.MOVE_SELECTED_POINT:
-          return [].concat(_toConsumableArray(this.possibleMoves(coordinate)), _toConsumableArray(this.boardService.findPlayerCoordinates(this.currentPlayer)));
+          return this.possibleMoves(coordinate);
 
         default:
           return [];
@@ -607,11 +617,12 @@ function () {
   }, {
     key: "removePoint",
     value: function removePoint(point) {
-      var boardPosition = this.boardService.position(point);
-      this.playerPoints[boardPosition.player]--;
-      boardPosition.player = Player_1.Player.NO_PLAYER;
+      var playerToRemove = this.boardService.playerAt(point);
+      this.state.playerPoints[playerToRemove]--;
+      this.state.destroyedOpponents[this.currentPlayer]++;
+      this.boardService.setPlayer(point, Player_1.Player.NO_PLAYER);
 
-      if (Object.values(this.playerPoints).some(function (points) {
+      if (Object.values(this.state.playerPoints).some(function (points) {
         return points === POINTS_TO_GAME_OVER;
       })) {
         this.setState(GameState_1.GameState.GAME_OVER);
@@ -620,23 +631,26 @@ function () {
   }, {
     key: "clearMill",
     value: function clearMill() {
-      this.setState(this.prevState);
-      this.millPlayer = null;
-    }
-  }, {
-    key: "getMovesHistory",
-    value: function getMovesHistory() {
-      return this.movesHistory.getHistory();
+      this.setState(this.state.prevState);
+      this.state.millPlayer = null;
     }
   }, {
     key: "currentState",
     get: function get() {
-      return this.gameState;
+      return this.state.gameState;
     }
   }, {
     key: "currentPlayer",
     get: function get() {
-      return this.currentPlayerMove;
+      return this.state.currentPlayerMove;
+    }
+  }, {
+    key: "currentMove",
+    set: function set(move) {
+      this.state.currentMove = move;
+    },
+    get: function get() {
+      return this.state.currentMove;
     }
   }]);
 
@@ -680,19 +694,19 @@ function () {
   }, {
     key: "moveTo",
     value: function moveTo(coordinate) {
-      this.ctx.moveTo(this.squareSize * coordinate.colIndex + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
+      this.ctx.moveTo(this.squareSize * (coordinate.col - 1) + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
     }
   }, {
     key: "lineTo",
     value: function lineTo(coordinate) {
-      this.ctx.lineTo(this.squareSize * coordinate.colIndex + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
+      this.ctx.lineTo(this.squareSize * (coordinate.col - 1) + this.squareSize / 2, this.squareSize * (coordinate.row - 1) + this.squareSize / 2);
     }
   }, {
     key: "strokeRect",
     value: function strokeRect(start, end) {
-      var x = this.squareSize * start.colIndex + this.squareSize / 2;
+      var x = this.squareSize * (start.col - 1) + this.squareSize / 2;
       var y = this.squareSize * (start.row - 1) + this.squareSize / 2;
-      this.ctx.strokeRect(x, y, this.squareSize * end.colIndex - x + this.squareSize / 2, this.squareSize * (end.row - 1) - y + this.squareSize / 2);
+      this.ctx.strokeRect(x, y, this.squareSize * (end.col - 1) - x + this.squareSize / 2, this.squareSize * (end.row - 1) - y + this.squareSize / 2);
     }
   }, {
     key: "stroke",
@@ -722,12 +736,12 @@ function () {
     value: function getCoordinate(pos) {
       var row = Math.floor(pos.y / this.squareSize);
       var col = Math.floor(pos.x / this.squareSize);
-      return Coordinate_1.coordinatesFromIndexes(row, col);
+      return Coordinate_1.coord(row + 1, col + 1);
     }
   }, {
     key: "drawCircle",
     value: function drawCircle(coordinate, radius) {
-      var xPosition = coordinate.colIndex * this.squareSize + this.squareSize / 2;
+      var xPosition = (coordinate.col - 1) * this.squareSize + this.squareSize / 2;
       var yPosition = (coordinate.row - 1) * this.squareSize + this.squareSize / 2;
       this.ctx.beginPath();
       this.ctx.arc(xPosition, yPosition, radius, 0, 2 * Math.PI);
@@ -802,6 +816,7 @@ function () {
     this.game = game;
     this.afterUpdate = afterUpdate;
     this.boardColor = '#212121';
+    this.humanPlayers = [Player_1.Player.PLAYER_1];
     this.fitToContainer(canvas);
     this.addMouseListener(canvas);
     this.squareSize = canvas.width / NineMensMorrisGame_1.NineMensMorrisGame.BOARD_SIZE;
@@ -813,12 +828,24 @@ function () {
   _createClass(GameDrawer, [{
     key: "onMouseClick",
     value: function onMouseClick(point) {
+      var _this = this;
+
+      if (!this.humanPlayers.includes(this.game.currentPlayer)) {
+        console.log('NOW IS COMPUTER TURN!');
+        return;
+      }
+
       var gameMoveResult = this.game.tryToMakeMove(point);
 
       switch (gameMoveResult) {
         case GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE:
         case GameMoveResult_1.GameMoveResult.OPPONENT_DESTROYED:
           this.resetCanvasAndDrawGame();
+          setTimeout(function () {
+            _this.afterUpdate(gameMoveResult, function () {
+              return _this.resetCanvasAndDrawGame();
+            });
+          });
           break;
 
         case GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART:
@@ -839,7 +866,6 @@ function () {
           break;
       }
 
-      this.afterUpdate(gameMoveResult);
       this.selectablePoints = this.game.findSelectableCoordinates(point);
     }
   }, {
@@ -859,38 +885,38 @@ function () {
   }, {
     key: "drawDots",
     value: function drawDots() {
-      var _this = this;
+      var _this2 = this;
 
-      this.game.forEachBoardPosition(function (board) {
-        var paintable = PaintablePlayer_1.getPaintablePlayer(board.player);
+      this.game.forEachBoardPosition(function (coordinate, player) {
+        var paintable = PaintablePlayer_1.getPaintablePlayer(player);
 
-        if (board.player === Player_1.Player.NO_PLAYER) {
-          _this.gameCanvas.setColor(_this.boardColor);
+        if (player === Player_1.Player.NO_PLAYER) {
+          _this2.gameCanvas.setColor(_this2.boardColor);
 
-          _this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
+          _this2.gameCanvas.fillCircle(coordinate, paintable.radius);
         } else {
-          _this.gameCanvas.setColor(paintable.color);
+          _this2.gameCanvas.setColor(paintable.color);
 
-          _this.gameCanvas.fillCircle(board.coordinate, paintable.radius);
+          _this2.gameCanvas.fillCircle(coordinate, paintable.radius);
         }
       });
     }
   }, {
     key: "drawPossibleMoves",
     value: function drawPossibleMoves(point) {
-      var _this2 = this;
+      var _this3 = this;
 
       this.game.possibleMoves(point).forEach(function (point) {
-        _this2.gameCanvas.strokeCircle(point, 15);
+        _this3.gameCanvas.strokeCircle(point, 15);
       });
     }
   }, {
     key: "drawPossibleMillMoves",
     value: function drawPossibleMillMoves() {
-      var _this3 = this;
+      var _this4 = this;
 
-      this.game.allOpponentPositions().forEach(function (position) {
-        _this3.gameCanvas.strokeCircle(position.coordinate, 15);
+      this.game.allOpponentPositions().forEach(function (coordinate) {
+        _this4.gameCanvas.strokeCircle(coordinate, 15);
       });
     }
   }, {
@@ -903,23 +929,23 @@ function () {
     key: "drawLines",
     value: function drawLines() {
       this.gameCanvas.setColor(this.boardColor);
-      this.gameCanvas.strokeRect(Coordinate_1.point(1, 'a'), Coordinate_1.point(7, 'g'));
-      this.gameCanvas.strokeRect(Coordinate_1.point(2, 'b'), Coordinate_1.point(6, 'f'));
-      this.gameCanvas.strokeRect(Coordinate_1.point(3, 'c'), Coordinate_1.point(5, 'e'));
-      this.gameCanvas.moveTo(Coordinate_1.point(1, 'd'));
-      this.gameCanvas.lineTo(Coordinate_1.point(3, 'd'));
-      this.gameCanvas.moveTo(Coordinate_1.point(5, 'd'));
-      this.gameCanvas.lineTo(Coordinate_1.point(7, 'd'));
-      this.gameCanvas.moveTo(Coordinate_1.point(4, 'a'));
-      this.gameCanvas.lineTo(Coordinate_1.point(4, 'c'));
-      this.gameCanvas.moveTo(Coordinate_1.point(4, 'e'));
-      this.gameCanvas.lineTo(Coordinate_1.point(4, 'g'));
+      this.gameCanvas.strokeRect(Coordinate_1.coord(1, 1), Coordinate_1.coord(7, 7));
+      this.gameCanvas.strokeRect(Coordinate_1.coord(2, 2), Coordinate_1.coord(6, 6));
+      this.gameCanvas.strokeRect(Coordinate_1.coord(3, 3), Coordinate_1.coord(5, 5));
+      this.gameCanvas.moveTo(Coordinate_1.coord(1, 4));
+      this.gameCanvas.lineTo(Coordinate_1.coord(3, 4));
+      this.gameCanvas.moveTo(Coordinate_1.coord(5, 4));
+      this.gameCanvas.lineTo(Coordinate_1.coord(7, 4));
+      this.gameCanvas.moveTo(Coordinate_1.coord(4, 1));
+      this.gameCanvas.lineTo(Coordinate_1.coord(4, 3));
+      this.gameCanvas.moveTo(Coordinate_1.coord(4, 5));
+      this.gameCanvas.lineTo(Coordinate_1.coord(4, 7));
       this.gameCanvas.stroke();
     }
   }, {
     key: "addMouseListener",
     value: function addMouseListener(canvas) {
-      var _this4 = this;
+      var _this5 = this;
 
       function getMousePos(canvas, evt) {
         var rect = canvas.getBoundingClientRect();
@@ -932,16 +958,16 @@ function () {
       canvas.addEventListener('click', function (e) {
         var pos = getMousePos(canvas, e);
 
-        var point = _this4.gameCanvas.getCoordinate(pos);
+        var point = _this5.gameCanvas.getCoordinate(pos);
 
-        _this4.onMouseClick(point);
+        _this5.onMouseClick(point);
       });
       canvas.addEventListener('mousemove', function (e) {
         var pos = getMousePos(canvas, e);
 
-        var point = _this4.gameCanvas.getCoordinate(pos);
+        var point = _this5.gameCanvas.getCoordinate(pos);
 
-        var isSelectable = _this4.selectablePoints.some(function (p) {
+        var isSelectable = _this5.selectablePoints.some(function (p) {
           return Coordinate_1.areCoordsEquals(p, point);
         });
 
@@ -1000,7 +1026,7 @@ function () {
 
   _createClass(GameInfoWriter, [{
     key: "update",
-    value: function update(gameMoveResult) {
+    value: function update() {
       this.updateCurrentPlayerText();
       this.updateGameState();
       this.updateHistoryMoves();
@@ -1020,15 +1046,14 @@ function () {
     }
   }, {
     key: "updateHistoryMoves",
-    value: function updateHistoryMoves() {
-      console.log(this.game.getMovesHistory());
+    value: function updateHistoryMoves() {// console.log(this.game.getMovesHistory());
     }
   }, {
     key: "updatePoints",
     value: function updatePoints() {
       var _this = this;
 
-      Object.entries(this.game.playerPoints).forEach(function (_ref) {
+      Object.entries(this.game.getState().playerPoints).forEach(function (_ref) {
         var _ref2 = _slicedToArray(_ref, 2),
             player = _ref2[0],
             points = _ref2[1];
@@ -1072,6 +1097,16 @@ function () {
       this.history.push(move);
     }
   }, {
+    key: "getHistory",
+    value: function getHistory() {
+      return this.history;
+    }
+  }, {
+    key: "resetHistory",
+    value: function resetHistory(history) {
+      this.history = history;
+    }
+  }, {
     key: "addInitialMove",
     value: function addInitialMove(coordinate, player) {
       this.addMove({
@@ -1080,15 +1115,12 @@ function () {
       });
     }
   }, {
-    key: "getHistory",
-    value: function getHistory() {
-      return this.history;
-    }
-  }, {
     key: "getPreviousCoordinate",
     value: function getPreviousCoordinate(player, coordinate) {
       for (var i = this.history.length - 1; i >= 0; i--) {
-        if (this.history[i].player === player) return Coordinate_1.areCoordsEquals(this.history[i].to, coordinate) ? this.history[i].from : null;
+        if (this.history[i].player === player) {
+          return Coordinate_1.areCoordsEquals(this.history[i].to, coordinate) ? this.history[i].from : null;
+        }
       }
 
       return null;
@@ -1120,121 +1152,81 @@ var BoardService =
 /*#__PURE__*/
 function () {
   function BoardService() {
+    var board = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : InitialGameHelper_1.initBoard();
+
     _classCallCheck(this, BoardService);
 
-    this.cannotGoCoordinates = [{
-      from: {
-        row: 4,
-        col: 'c'
-      },
-      to: {
-        row: 4,
-        col: 'e'
-      }
-    }, {
-      from: {
-        row: 3,
-        col: 'd'
-      },
-      to: {
-        row: 5,
-        col: 'd'
-      }
-    }];
-    this.board = InitialGameHelper_1.initBoard();
+    this.board = board;
+    this.neighbours = this.initNeighbours();
+    this.millCheckPositions = this.initMillCheckPositions();
   }
 
   _createClass(BoardService, [{
-    key: "position",
-    value: function position(point) {
-      return this.board.find(function (p) {
-        return Coordinate_1.areCoordsEquals(p.coordinate, point);
-      });
+    key: "resetBoard",
+    value: function resetBoard() {
+      var board = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : InitialGameHelper_1.initBoard();
+      this.board = board;
     }
   }, {
-    key: "filter",
-    value: function filter(predicate) {
-      return this.board.filter(predicate);
+    key: "playerAt",
+    value: function playerAt(coordinate) {
+      return this.board.get(Coordinate_1.hash(coordinate));
+    }
+  }, {
+    key: "setPlayer",
+    value: function setPlayer(coordinate, player) {
+      this.board.set(Coordinate_1.hash(coordinate), player);
+    }
+  }, {
+    key: "filterForCoordinates",
+    value: function filterForCoordinates(predicate) {
+      var result = [];
+      this.forEach(function (coord, player) {
+        if (predicate(player)) result.push(coord);
+      });
+      return result;
     }
   }, {
     key: "findPlayerCoordinates",
     value: function findPlayerCoordinates(player) {
-      return this.filter(function (pos) {
-        return pos.player === player;
-      }).map(function (p) {
-        return p.coordinate;
+      return this.filterForCoordinates(function (_player) {
+        return _player === player;
       });
     }
   }, {
-    key: "findColsAndRowsInLine",
-    value: function findColsAndRowsInLine(point) {
-      return this.board.reduce(function (acc, curr) {
-        if (Coordinate_1.areCoordsEquals(curr.coordinate, point)) {
-          acc.rowsInLine.push(curr);
-          acc.colsInLine.push(curr);
-        } else if (curr.coordinate.colIndex === point.colIndex) {
-          acc.colsInLine.push(curr);
-        } else if (curr.coordinate.row === point.row) {
-          acc.rowsInLine.push(curr);
-        }
+    key: "isCoordinatePartOfMill",
+    value: function isCoordinatePartOfMill(coordinate) {
+      var _this = this;
 
-        return acc;
-      }, {
-        colsInLine: [],
-        rowsInLine: []
+      var coordPlayer = this.playerAt(coordinate);
+      var millCoordsToCheck = this.millCheckPositions.get(Coordinate_1.hash(coordinate));
+      return millCoordsToCheck.some(function (coords) {
+        return coords.every(function (_coord) {
+          return _this.playerAt(_coord) === coordPlayer;
+        });
       });
     }
   }, {
     key: "forEach",
     value: function forEach(func) {
-      this.board.forEach(func);
+      this.board.forEach(function (player, hash) {
+        func(Coordinate_1.fromHash(hash), player);
+      });
     }
   }, {
     key: "findNeighbours",
     value: function findNeighbours(coordinate) {
-      var _this$findColsAndRows = this.findColsAndRowsInLine(coordinate),
-          colsInLine = _this$findColsAndRows.colsInLine,
-          rowsInLine = _this$findColsAndRows.rowsInLine;
-
-      var neighbours = this.findNearestPoints(coordinate, colsInLine, rowsInLine);
-      this.filterNeighboursImpossibleToGo(coordinate, neighbours);
-      return neighbours;
+      return this.neighbours.get(Coordinate_1.hash(coordinate));
     }
   }, {
-    key: "filterNeighboursImpossibleToGo",
-    value: function filterNeighboursImpossibleToGo(coordinate, neighbours) {
-      this.cannotGoCoordinates.forEach(function (_ref) {
-        var from = _ref.from,
-            to = _ref.to;
-
-        if (Coordinate_1.areCoordsEquals(coordinate, from)) {
-          var i = neighbours.findIndex(function (p) {
-            return Coordinate_1.areCoordsEquals(p, to);
-          });
-          neighbours.splice(i, 1);
-        } else if (Coordinate_1.areCoordsEquals(coordinate, to)) {
-          var _i = neighbours.findIndex(function (p) {
-            return Coordinate_1.areCoordsEquals(p, from);
-          });
-
-          neighbours.splice(_i, 1);
-        }
-      });
+    key: "initNeighbours",
+    value: function initNeighbours() {
+      return new Map([[Coordinate_1.hash(Coordinate_1.coord(1, 1)), [Coordinate_1.coord(1, 4), Coordinate_1.coord(4, 1)]], [Coordinate_1.hash(Coordinate_1.coord(1, 4)), [Coordinate_1.coord(1, 1), Coordinate_1.coord(1, 7), Coordinate_1.coord(2, 4)]], [Coordinate_1.hash(Coordinate_1.coord(1, 7)), [Coordinate_1.coord(1, 4), Coordinate_1.coord(4, 7)]], [Coordinate_1.hash(Coordinate_1.coord(2, 2)), [Coordinate_1.coord(2, 4), Coordinate_1.coord(4, 2)]], [Coordinate_1.hash(Coordinate_1.coord(2, 4)), [Coordinate_1.coord(1, 4), Coordinate_1.coord(2, 6), Coordinate_1.coord(3, 4), Coordinate_1.coord(2, 2)]], [Coordinate_1.hash(Coordinate_1.coord(2, 6)), [Coordinate_1.coord(2, 4), Coordinate_1.coord(4, 6)]], [Coordinate_1.hash(Coordinate_1.coord(3, 3)), [Coordinate_1.coord(3, 4), Coordinate_1.coord(4, 3)]], [Coordinate_1.hash(Coordinate_1.coord(3, 4)), [Coordinate_1.coord(3, 3), Coordinate_1.coord(2, 4), Coordinate_1.coord(3, 5)]], [Coordinate_1.hash(Coordinate_1.coord(3, 5)), [Coordinate_1.coord(3, 4), Coordinate_1.coord(4, 5)]], [Coordinate_1.hash(Coordinate_1.coord(4, 1)), [Coordinate_1.coord(1, 1), Coordinate_1.coord(4, 2), Coordinate_1.coord(7, 1)]], [Coordinate_1.hash(Coordinate_1.coord(4, 2)), [Coordinate_1.coord(4, 1), Coordinate_1.coord(2, 2), Coordinate_1.coord(6, 2), Coordinate_1.coord(4, 3)]], [Coordinate_1.hash(Coordinate_1.coord(4, 3)), [Coordinate_1.coord(4, 2), Coordinate_1.coord(3, 3), Coordinate_1.coord(5, 3)]], [Coordinate_1.hash(Coordinate_1.coord(4, 5)), [Coordinate_1.coord(3, 5), Coordinate_1.coord(5, 5), Coordinate_1.coord(4, 6)]], [Coordinate_1.hash(Coordinate_1.coord(4, 6)), [Coordinate_1.coord(4, 5), Coordinate_1.coord(2, 6), Coordinate_1.coord(4, 7), Coordinate_1.coord(6, 6)]], [Coordinate_1.hash(Coordinate_1.coord(4, 7)), [Coordinate_1.coord(4, 6), Coordinate_1.coord(1, 7), Coordinate_1.coord(7, 7)]], [Coordinate_1.hash(Coordinate_1.coord(5, 3)), [Coordinate_1.coord(4, 3), Coordinate_1.coord(5, 4)]], [Coordinate_1.hash(Coordinate_1.coord(5, 4)), [Coordinate_1.coord(5, 3), Coordinate_1.coord(5, 5), Coordinate_1.coord(6, 4)]], [Coordinate_1.hash(Coordinate_1.coord(5, 5)), [Coordinate_1.coord(5, 4), Coordinate_1.coord(4, 5)]], [Coordinate_1.hash(Coordinate_1.coord(6, 2)), [Coordinate_1.coord(4, 2), Coordinate_1.coord(6, 4)]], [Coordinate_1.hash(Coordinate_1.coord(6, 4)), [Coordinate_1.coord(6, 2), Coordinate_1.coord(5, 4), Coordinate_1.coord(6, 6), Coordinate_1.coord(7, 4)]], [Coordinate_1.hash(Coordinate_1.coord(6, 6)), [Coordinate_1.coord(6, 4), Coordinate_1.coord(4, 6)]], [Coordinate_1.hash(Coordinate_1.coord(7, 1)), [Coordinate_1.coord(4, 1), Coordinate_1.coord(7, 4)]], [Coordinate_1.hash(Coordinate_1.coord(7, 4)), [Coordinate_1.coord(7, 1), Coordinate_1.coord(6, 4), Coordinate_1.coord(7, 7)]], [Coordinate_1.hash(Coordinate_1.coord(7, 7)), [Coordinate_1.coord(7, 4), Coordinate_1.coord(4, 7)]]]);
     }
   }, {
-    key: "findNearestPoints",
-    value: function findNearestPoints(coordinate, colsInLine, rowsInLine) {
-      var sameColumnsIndex = colsInLine.findIndex(function (p) {
-        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
-      });
-      var sameRowsIndex = rowsInLine.findIndex(function (p) {
-        return Coordinate_1.areCoordsEquals(p.coordinate, coordinate);
-      });
-      return [colsInLine[sameColumnsIndex + 1], colsInLine[sameColumnsIndex - 1], rowsInLine[sameRowsIndex + 1], rowsInLine[sameRowsIndex - 1]].filter(function (x) {
-        return x;
-      }).map(function (p) {
-        return p.coordinate;
-      });
+    key: "initMillCheckPositions",
+    value: function initMillCheckPositions() {
+      return new Map([[Coordinate_1.hash(Coordinate_1.coord(1, 1)), [[Coordinate_1.coord(4, 1), Coordinate_1.coord(7, 1)], [Coordinate_1.coord(1, 4), Coordinate_1.coord(1, 7)]]], [Coordinate_1.hash(Coordinate_1.coord(1, 4)), [[Coordinate_1.coord(2, 4), Coordinate_1.coord(3, 4)], [Coordinate_1.coord(1, 1), Coordinate_1.coord(1, 7)]]], [Coordinate_1.hash(Coordinate_1.coord(1, 7)), [[Coordinate_1.coord(4, 7), Coordinate_1.coord(7, 7)], [Coordinate_1.coord(1, 1), Coordinate_1.coord(1, 4)]]], [Coordinate_1.hash(Coordinate_1.coord(2, 2)), [[Coordinate_1.coord(2, 4), Coordinate_1.coord(2, 6)], [Coordinate_1.coord(4, 2), Coordinate_1.coord(6, 2)]]], [Coordinate_1.hash(Coordinate_1.coord(2, 4)), [[Coordinate_1.coord(1, 4), Coordinate_1.coord(3, 4)], [Coordinate_1.coord(2, 2), Coordinate_1.coord(2, 6)]]], [Coordinate_1.hash(Coordinate_1.coord(2, 6)), [[Coordinate_1.coord(2, 2), Coordinate_1.coord(2, 4)], [Coordinate_1.coord(4, 6), Coordinate_1.coord(6, 6)]]], [Coordinate_1.hash(Coordinate_1.coord(3, 3)), [[Coordinate_1.coord(3, 4), Coordinate_1.coord(3, 5)], [Coordinate_1.coord(4, 3), Coordinate_1.coord(5, 3)]]], [Coordinate_1.hash(Coordinate_1.coord(3, 4)), [[Coordinate_1.coord(1, 4), Coordinate_1.coord(2, 4)], [Coordinate_1.coord(3, 3), Coordinate_1.coord(3, 5)]]], [Coordinate_1.hash(Coordinate_1.coord(3, 5)), [[Coordinate_1.coord(3, 3), Coordinate_1.coord(3, 4)], [Coordinate_1.coord(4, 5), Coordinate_1.coord(5, 5)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 1)), [[Coordinate_1.coord(4, 2), Coordinate_1.coord(4, 3)], [Coordinate_1.coord(1, 1), Coordinate_1.coord(7, 1)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 2)), [[Coordinate_1.coord(2, 2), Coordinate_1.coord(6, 2)], [Coordinate_1.coord(4, 1), Coordinate_1.coord(4, 3)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 3)), [[Coordinate_1.coord(3, 3), Coordinate_1.coord(5, 3)], [Coordinate_1.coord(4, 1), Coordinate_1.coord(4, 2)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 5)), [[Coordinate_1.coord(3, 5), Coordinate_1.coord(5, 5)], [Coordinate_1.coord(4, 6), Coordinate_1.coord(4, 7)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 6)), [[Coordinate_1.coord(2, 6), Coordinate_1.coord(6, 6)], [Coordinate_1.coord(4, 5), Coordinate_1.coord(4, 7)]]], [Coordinate_1.hash(Coordinate_1.coord(4, 7)), [[Coordinate_1.coord(1, 7), Coordinate_1.coord(7, 7)], [Coordinate_1.coord(4, 5), Coordinate_1.coord(4, 6)]]], [Coordinate_1.hash(Coordinate_1.coord(5, 3)), [[Coordinate_1.coord(3, 3), Coordinate_1.coord(4, 3)], [Coordinate_1.coord(5, 4), Coordinate_1.coord(5, 5)]]], [Coordinate_1.hash(Coordinate_1.coord(5, 4)), [[Coordinate_1.coord(5, 3), Coordinate_1.coord(5, 5)], [Coordinate_1.coord(6, 4), Coordinate_1.coord(7, 4)]]], [Coordinate_1.hash(Coordinate_1.coord(5, 5)), [[Coordinate_1.coord(5, 3), Coordinate_1.coord(5, 4)], [Coordinate_1.coord(2, 6), Coordinate_1.coord(4, 6)]]], [Coordinate_1.hash(Coordinate_1.coord(6, 2)), [[Coordinate_1.coord(2, 2), Coordinate_1.coord(4, 2)], [Coordinate_1.coord(6, 4), Coordinate_1.coord(6, 6)]]], [Coordinate_1.hash(Coordinate_1.coord(6, 4)), [[Coordinate_1.coord(6, 2), Coordinate_1.coord(6, 6)], [Coordinate_1.coord(5, 4), Coordinate_1.coord(7, 4)]]], [Coordinate_1.hash(Coordinate_1.coord(6, 6)), [[Coordinate_1.coord(2, 6), Coordinate_1.coord(4, 6)], [Coordinate_1.coord(6, 2), Coordinate_1.coord(6, 4)]]], [Coordinate_1.hash(Coordinate_1.coord(7, 1)), [[Coordinate_1.coord(1, 1), Coordinate_1.coord(4, 1)], [Coordinate_1.coord(7, 4), Coordinate_1.coord(7, 7)]]], [Coordinate_1.hash(Coordinate_1.coord(7, 4)), [[Coordinate_1.coord(7, 1), Coordinate_1.coord(7, 7)], [Coordinate_1.coord(6, 4), Coordinate_1.coord(5, 4)]]], [Coordinate_1.hash(Coordinate_1.coord(7, 7)), [[Coordinate_1.coord(7, 1), Coordinate_1.coord(7, 4)], [Coordinate_1.coord(1, 7), Coordinate_1.coord(4, 7)]]]]);
     }
   }]);
 
@@ -1242,7 +1234,214 @@ function () {
 }();
 
 exports.BoardService = BoardService;
-},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/index.ts":[function(require,module,exports) {
+},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
+"use strict";
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Tree = function Tree() {
+  _classCallCheck(this, Tree);
+};
+
+exports.Tree = Tree;
+
+var TreeNode =
+/*#__PURE__*/
+function () {
+  function TreeNode(value, parent) {
+    _classCallCheck(this, TreeNode);
+
+    this.value = value;
+    this.parent = parent;
+    this.children = [];
+  }
+
+  _createClass(TreeNode, [{
+    key: "addChild",
+    value: function addChild(node) {
+      node.parent = this;
+      this.children.push(node);
+    }
+  }, {
+    key: "getChildren",
+    value: function getChildren() {
+      return this.children;
+    }
+  }]);
+
+  return TreeNode;
+}();
+
+exports.TreeNode = TreeNode;
+},{}],"app/ai/MinMaxAlgorithm.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Player_1 = require("../game/Player");
+
+var Tree_1 = require("../tree/Tree");
+
+var GameMoveResult_1 = require("../game/GameMoveResult");
+
+var GameState_1 = require("../game/GameState");
+
+var MinMaxAlgorithm =
+/*#__PURE__*/
+function () {
+  function MinMaxAlgorithm(heuristic, game) {
+    _classCallCheck(this, MinMaxAlgorithm);
+
+    this.heuristic = heuristic;
+    this.game = game;
+  }
+
+  _createClass(MinMaxAlgorithm, [{
+    key: "minMax",
+    value: function minMax(state, currentPlayer) {
+      var tree = new Tree_1.Tree();
+      tree.root = new Tree_1.TreeNode({
+        evaluation: 0,
+        move: null,
+        validMove: false
+      }, null);
+      var depth = state.gameState === GameState_1.GameState.INITIAL ? 3 : 4;
+
+      this._minMax(state, depth, currentPlayer, true, tree.root, currentPlayer);
+
+      return tree;
+    }
+  }, {
+    key: "_minMax",
+    value: function _minMax(state, depth, currentPlayer, isMaximizingPlayer, parentNode, initialPlayer) {
+      var _this = this;
+
+      this.game.resetState(state);
+
+      if (depth === 0 || this.game.isGameOver()) {
+        return this.heuristic.calculateBoard(state, Player_1.Player.PLAYER_2);
+      }
+
+      var doComputerMove = function doComputerMove(initEval, nextEval) {
+        var bestEval = initEval;
+
+        _this.game.findSelectableCoordinates().forEach(function (coord) {
+          _this.game.resetState(state);
+
+          var result = _this.game.tryToMakeMove(coord);
+
+          var newNode = new Tree_1.TreeNode({
+            evaluation: null,
+            move: coord,
+            nextMoves: [],
+            validMove: true
+          }, parentNode);
+
+          if (result === GameMoveResult_1.GameMoveResult.MILL) {
+            var millCoord = _this.game.findSelectableCoordinates(coord)[0];
+
+            _this.game.tryToMakeMove(millCoord);
+
+            newNode.value.nextMoves.push(millCoord);
+          }
+
+          if (result === GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART) {
+            var nextMove = _this.game.findSelectableCoordinates(coord)[0];
+
+            if (!nextMove) {
+              newNode.value.validMove = false;
+
+              _this.game.resetState(state);
+            } else {
+              var nextMoveResult = _this.game.tryToMakeMove(nextMove);
+
+              newNode.value.nextMoves.push(nextMove);
+
+              if (nextMoveResult === GameMoveResult_1.GameMoveResult.MILL) {
+                var _millCoord = _this.game.findSelectableCoordinates(coord)[0];
+
+                _this.game.tryToMakeMove(_millCoord);
+
+                newNode.value.nextMoves.push(_millCoord);
+              }
+            }
+          }
+
+          parentNode.addChild(newNode);
+
+          var updatedState = _this.game.getState();
+
+          var evaluation = _this._minMax(updatedState, depth - 1, Player_1.nextPlayer(currentPlayer), !isMaximizingPlayer, newNode, initialPlayer);
+
+          newNode.value.evaluation = evaluation;
+          bestEval = nextEval(bestEval, evaluation);
+        });
+
+        return bestEval;
+      };
+
+      if (isMaximizingPlayer) {
+        return doComputerMove(-Infinity, Math.max);
+      } else {
+        return doComputerMove(Infinity, Math.min);
+      }
+    }
+  }]);
+
+  return MinMaxAlgorithm;
+}();
+
+exports.MinMaxAlgorithm = MinMaxAlgorithm;
+},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","../game/GameState":"app/game/GameState.ts"}],"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Player_1 = require("../../game/Player");
+
+var PlayerRemainingPointsHeuristic =
+/*#__PURE__*/
+function () {
+  function PlayerRemainingPointsHeuristic() {
+    _classCallCheck(this, PlayerRemainingPointsHeuristic);
+  }
+
+  _createClass(PlayerRemainingPointsHeuristic, [{
+    key: "calculateBoard",
+    value: function calculateBoard(state, player) {
+      return state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)];
+    }
+  }]);
+
+  return PlayerRemainingPointsHeuristic;
+}();
+
+exports.PlayerRemainingPointsHeuristic = PlayerRemainingPointsHeuristic;
+},{"../../game/Player":"app/game/Player.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1259,17 +1458,61 @@ var MovesHistory_1 = require("./game/MovesHistory");
 
 var BoardService_1 = require("./game/BoardService");
 
+var MinMaxAlgorithm_1 = require("./ai/MinMaxAlgorithm");
+
+var PlayerRemainingPointsHeuristic_1 = require("./ai/heuristics/PlayerRemainingPointsHeuristic");
+
+var Player_1 = require("./game/Player");
+
+var GameMoveResult_1 = require("./game/GameMoveResult");
+
+function makeComputerMove(minMaxAlgorithm, state, game) {
+  var tree = minMaxAlgorithm.minMax(state, Player_1.Player.PLAYER_2);
+  var bestMove = tree.root.getChildren().map(function (node) {
+    return node.value;
+  }).filter(function (value) {
+    return value.validMove;
+  }).reduce(function (acc, cur) {
+    return acc.evaluation >= cur.evaluation ? acc : cur;
+  });
+  var possibleMoves = tree.root.getChildren().map(function (node) {
+    return node.value;
+  }).filter(function (value) {
+    return value.validMove;
+  }).filter(function (a) {
+    return a.evaluation === bestMove.evaluation;
+  }).filter(function (a) {
+    return a && a.move;
+  });
+  var move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+  game.resetState(state);
+  game.tryToMakeMove(move.move);
+  move.nextMoves.forEach(function (a) {
+    game.tryToMakeMove(a);
+  });
+}
+
 (function () {
   console.log("HELLO IN THE NINE MEN'S MORRIS GAME");
   var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), new BoardService_1.BoardService());
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
-  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (type) {
-    return infoWriter.update(type);
+  var minMaxAlgorithm = new MinMaxAlgorithm_1.MinMaxAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
+  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
+    var state = game.getState();
+    infoWriter.update();
+
+    if (GameMoveResult_1.NEXT_PLAYER_RESULTS.includes(result)) {
+      setTimeout(function () {
+        makeComputerMove(minMaxAlgorithm, state, game);
+        infoWriter.update();
+        redrawFunc();
+      }, 10);
+    }
   });
   infoWriter.update();
 })();
-},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./ai/MinMaxAlgorithm":"app/ai/MinMaxAlgorithm.ts","./ai/heuristics/PlayerRemainingPointsHeuristic":"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1297,7 +1540,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64275" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62718" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
