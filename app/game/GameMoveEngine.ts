@@ -42,8 +42,8 @@ export class GameMoveEngine {
     }
 
     private makeFirstMovePart(point: Coordinate): GameMoveResult {
-        const position = this.game.boardService.position(point);
-        if (!position || position.player !== this.game.currentPlayer) {
+        const player = this.game.boardService.playerAt(point);
+        if (!player || player !== this.game.currentPlayer) {
             return GameMoveResult.CANNOT_MOVE;
         }
         this.game.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };

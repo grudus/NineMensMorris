@@ -1,4 +1,4 @@
-import { Coordinate, coordinatesFromIndexes } from '../game/Coordinate';
+import { Coordinate, coord } from '../game/Coordinate';
 
 export class GameCanvasContext {
     public constructor(private ctx: CanvasRenderingContext2D, private squareSize: number) {}
@@ -55,7 +55,7 @@ export class GameCanvasContext {
     public getCoordinate(pos: { x: number; y: number }): Coordinate {
         const row = Math.floor(pos.y / this.squareSize);
         const col = Math.floor(pos.x / this.squareSize);
-        return coordinatesFromIndexes(row, col);
+        return coord(row + 1, col + 1);
     }
 
     private drawCircle(coordinate: Coordinate, radius: number) {

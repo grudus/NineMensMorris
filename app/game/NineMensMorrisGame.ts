@@ -1,5 +1,4 @@
 import { nextPlayer, Player } from './Player';
-import { BoardPosition } from './BoardPosition';
 import { areCoordsEquals, Coordinate } from './Coordinate';
 import * as InitialGameHelper from './InitialGameHelper';
 import { GameState } from './GameState';
@@ -48,6 +47,9 @@ export class NineMensMorrisGame {
 
     private clone(obj) {
         if (obj === null || typeof obj !== 'object') return obj;
+        if (obj instanceof Map) {
+            return new Map(obj);
+        }
         const temp = obj.constructor(); // changed
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -61,8 +63,9 @@ export class NineMensMorrisGame {
 
     public addInitialPoint(coordinate: Coordinate) {
         if (this.state.initialHandQueue.length) {
-            const position = this.boardService.position(coordinate);
-            position.player = position.player === Player.NO_PLAYER ? this.state.currentPlayerMove : position.player;
+            const player = this.boardService.playerAt(coordinate);
+            const newPlayer = player === Player.NO_PLAYER ? this.state.currentPlayerMove : player;
+            this.boardService.setPlayer(coordinate, newPlayer);
             this.state.playerPoints[this.currentPlayer]++;
             this.movesHistory.addInitialMove(coordinate, this.currentPlayer);
         } else throw Error('Initial hand queue is empty!');
@@ -83,36 +86,19 @@ export class NineMensMorrisGame {
     }
 
     public movePoint(from: Coordinate, to: Coordinate) {
-        const fromPosition = this.boardService.position(from);
-        const toPosition = this.boardService.position(to);
+        const fromPlayer = this.boardService.playerAt(from);
+        const toPlayer = this.boardService.playerAt(to);
 
-        if (toPosition.player === Player.NO_PLAYER) {
-            toPosition.player = fromPosition.player;
-            fromPosition.player = Player.NO_PLAYER;
+        if (toPlayer === Player.NO_PLAYER) {
+            this.boardService.setPlayer(to, fromPlayer);
+            this.boardService.setPlayer(from, Player.NO_PLAYER);
 
             this.movesHistory.addMove({ from, to, player: this.currentPlayer });
         }
     }
 
     public detectMill(changedCoordinate: Coordinate): boolean {
-        const { colsInLine, rowsInLine } = this.boardService.findColsAndRowsInLine(changedCoordinate);
-
-        const checkMill = (inLineArray: BoardPosition[], coordinate: Coordinate): boolean => {
-            const inLineIndex = inLineArray.findIndex(p => areCoordsEquals(p.coordinate, coordinate));
-            for (let i = 0; i < inLineArray.length; i += 3) {
-                if (inLineIndex >= i && inLineIndex < i + 3) {
-                    const currPlayer = inLineArray[inLineIndex].player;
-                    let millCount = 0;
-                    for (let j = 0; j < 3; j++) {
-                        if (currPlayer == inLineArray[i + j].player) millCount++;
-                    }
-                    if (millCount == 3) return true;
-                }
-            }
-            return false;
-        };
-
-        const isMill = checkMill(colsInLine, changedCoordinate) || checkMill(rowsInLine, changedCoordinate);
+        const isMill = this.boardService.isCoordinatePartOfMill(changedCoordinate);
         this.state.millPlayer = isMill ? this.currentPlayer : null;
         if (isMill) {
             this.setState(GameState.MILL);
@@ -124,7 +110,7 @@ export class NineMensMorrisGame {
         return this.state.millPlayer !== null;
     }
 
-    public forEachBoardPosition(func: (pos: BoardPosition) => void) {
+    public forEachBoardPosition(func: (coordinate: Coordinate, player: Player) => void) {
         this.boardService.forEach(func);
     }
 
@@ -133,17 +119,16 @@ export class NineMensMorrisGame {
     }
 
     public isNoPlayer(coordinate: Coordinate): boolean {
-        const triedPosition: BoardPosition = this.boardService.position(coordinate);
-        return triedPosition.player == Player.NO_PLAYER;
+        return this.boardService.playerAt(coordinate) === Player.NO_PLAYER;
     }
 
     public isOpponentPoint(point: Coordinate): boolean {
-        const position = this.boardService.position(point);
-        return this.isOpponentPosition(position);
+        const player = this.boardService.playerAt(point);
+        return this.isOpponentPosition(player);
     }
 
-    private isOpponentPosition(position) {
-        return position && position.player != Player.NO_PLAYER && position.player != this.currentPlayer;
+    private isOpponentPosition(player: Player | null) {
+        return player && player != Player.NO_PLAYER && player != this.currentPlayer;
     }
 
     public possibleMoves(coordinate: Coordinate): Coordinate[] {
@@ -153,8 +138,8 @@ export class NineMensMorrisGame {
             .filter(p => !(previousCoordinate && areCoordsEquals(previousCoordinate, p)));
     }
 
-    public allOpponentPositions(): BoardPosition[] {
-        return this.boardService.filter((position: BoardPosition) => this.isOpponentPosition(position));
+    public allOpponentPositions(): Coordinate[] {
+        return this.boardService.filterForCoordinates((player: Player) => this.isOpponentPosition(player));
     }
 
     public findNeighbours(coordinate: Coordinate): Coordinate[] {
@@ -185,7 +170,7 @@ export class NineMensMorrisGame {
             case GameState.SELECT_POINT_TO_MOVE:
                 return this.boardService.findPlayerCoordinates(this.currentPlayer);
             case GameState.MILL:
-                return this.allOpponentPositions().map(p => p.coordinate);
+                return this.allOpponentPositions();
             case GameState.MOVE_SELECTED_POINT:
                 return this.possibleMoves(coordinate);
             default:
@@ -194,10 +179,10 @@ export class NineMensMorrisGame {
     }
 
     public removePoint(point: Coordinate) {
-        const boardPosition = this.boardService.position(point);
-        this.state.playerPoints[boardPosition.player]--;
+        const playerToRemove = this.boardService.playerAt(point);
+        this.state.playerPoints[playerToRemove]--;
         this.state.destroyedOpponents[this.currentPlayer]++;
-        boardPosition.player = Player.NO_PLAYER;
+        this.boardService.setPlayer(point, Player.NO_PLAYER);
 
         if (Object.values(this.state.playerPoints).some(points => points === POINTS_TO_GAME_OVER)) {
             this.setState(GameState.GAME_OVER);
@@ -226,7 +211,7 @@ export interface NineMensMorrisState {
     prevState: GameState;
     playerPoints: { [Player.PLAYER_1]: number; [Player.PLAYER_2]: number };
     destroyedOpponents: { [Player.PLAYER_1]: number; [Player.PLAYER_2]: number };
-    board: BoardPosition[];
+    board: Map<number, Player>;
     history: Move[];
     currentMove?: CurrentMove;
 }
