@@ -4,15 +4,15 @@ import { areCoordsEquals, Coordinate } from './Coordinate';
 import { Player } from './Player';
 
 export class BoardService {
-    private readonly board: BoardPosition[];
-
     private readonly cannotGoCoordinates = [
         { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
         { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
     ];
 
-    public constructor() {
-        this.board = initBoard();
+    public constructor(private board: BoardPosition[] = initBoard()) {}
+
+    public resetBoard(board = initBoard()) {
+        this.board = board;
     }
 
     public position(point: Coordinate): BoardPosition {

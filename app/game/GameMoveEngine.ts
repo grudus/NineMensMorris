@@ -5,8 +5,6 @@ import { GameMoveResult } from './GameMoveResult';
 import { Player } from './Player';
 
 export class GameMoveEngine {
-    private currentMove: CurrentMove = null;
-
     public constructor(private game: NineMensMorrisGame) {}
 
     public makeMove(point: Coordinate): GameMoveResult {
@@ -37,7 +35,7 @@ export class GameMoveEngine {
     }
 
     private makeMoveInNormalPhase(point: Coordinate): GameMoveResult {
-        if (!this.currentMove) {
+        if (!this.game.currentMove) {
             return this.makeFirstMovePart(point);
         }
         return this.makeFinalMovePart(point);
@@ -48,25 +46,27 @@ export class GameMoveEngine {
         if (!position || position.player !== this.game.currentPlayer) {
             return GameMoveResult.CANNOT_MOVE;
         }
-        this.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };
+        this.game.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };
         this.game.setState(GameState.MOVE_SELECTED_POINT);
         return GameMoveResult.FIRST_MOVE_PART;
     }
 
     private makeFinalMovePart(point: Coordinate): GameMoveResult {
-        const pointToMove = this.currentMove.neighbours.find(p => areCoordsEquals(p, point));
+        const pointToMove = this.game.currentMove.neighbours.find(p => areCoordsEquals(p, point));
 
         if (!pointToMove) {
-            this.currentMove = null;
+            this.game.currentMove = null;
             this.game.setState(GameState.SELECT_POINT_TO_MOVE);
             return GameMoveResult.RESTART_MOVE;
         }
 
-        this.game.movePoint(this.currentMove.point, point);
-        this.currentMove = null;
+        this.game.movePoint(this.game.currentMove.point, point);
+        this.game.currentMove = null;
+
         if (this.game.detectMill(point)) {
             return GameMoveResult.MILL;
         }
+
         this.game.setNextPlayerMove();
         return GameMoveResult.SUCCESSFUL_MOVE;
     }
@@ -82,7 +82,7 @@ export class GameMoveEngine {
     }
 }
 
-interface CurrentMove {
+export interface CurrentMove {
     point: Coordinate;
     neighbours: Coordinate[];
     player: Player;

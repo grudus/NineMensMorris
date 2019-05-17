@@ -35,6 +35,10 @@ export class GameDrawer {
             case GameMoveResult.SUCCESSFUL_MOVE:
             case GameMoveResult.OPPONENT_DESTROYED:
                 this.resetCanvasAndDrawGame();
+                setTimeout(() => {
+                    this.afterUpdate(gameMoveResult);
+                    this.resetCanvasAndDrawGame();
+                });
                 break;
             case GameMoveResult.FIRST_MOVE_PART:
                 this.drawPossibleMoves(point);
@@ -50,7 +54,7 @@ export class GameDrawer {
             case GameMoveResult.CANNOT_MOVE:
                 break;
         }
-        this.afterUpdate(gameMoveResult);
+
         this.selectablePoints = this.game.findSelectableCoordinates(point);
     }
 

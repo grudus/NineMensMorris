@@ -1,6 +1,5 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { getPaintablePlayer } from './PaintablePlayer';
-import { GameMoveResult } from '../game/GameMoveResult';
 import { Player } from '../game/Player';
 import { GameState } from '../game/GameState';
 
@@ -22,7 +21,7 @@ export class GameInfoWriter {
 
     public constructor(private game: NineMensMorrisGame) {}
 
-    public update(gameMoveResult?: GameMoveResult) {
+    public update() {
         this.updateCurrentPlayerText();
         this.updateGameState();
         this.updateHistoryMoves();
@@ -40,11 +39,11 @@ export class GameInfoWriter {
     }
 
     private updateHistoryMoves() {
-        console.log(this.game.getMovesHistory());
+        // console.log(this.game.getMovesHistory());
     }
 
     private updatePoints() {
-        Object.entries(this.game.playerPoints).forEach(([player, points]) => {
+        Object.entries(this.game.getState().playerPoints).forEach(([player, points]) => {
             this.playerPoints[player].innerText = points + '';
         });
     }
