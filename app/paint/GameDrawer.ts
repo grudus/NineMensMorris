@@ -104,21 +104,21 @@ export class GameDrawer {
     private drawLines() {
         this.gameCanvas.setColor(this.boardColor);
 
-        this.gameCanvas.strokeRect(point(1, 'a'), point(7, 'g'));
-        this.gameCanvas.strokeRect(point(2, 'b'), point(6, 'f'));
-        this.gameCanvas.strokeRect(point(3, 'c'), point(5, 'e'));
+        this.gameCanvas.strokeRect(point(1, 1), point(7, 7));
+        this.gameCanvas.strokeRect(point(2, 2), point(6, 6));
+        this.gameCanvas.strokeRect(point(3, 3), point(5, 5));
 
-        this.gameCanvas.moveTo(point(1, 'd'));
-        this.gameCanvas.lineTo(point(3, 'd'));
+        this.gameCanvas.moveTo(point(1, 4));
+        this.gameCanvas.lineTo(point(3, 4));
 
-        this.gameCanvas.moveTo(point(5, 'd'));
-        this.gameCanvas.lineTo(point(7, 'd'));
+        this.gameCanvas.moveTo(point(5, 4));
+        this.gameCanvas.lineTo(point(7, 4));
 
-        this.gameCanvas.moveTo(point(4, 'a'));
-        this.gameCanvas.lineTo(point(4, 'c'));
+        this.gameCanvas.moveTo(point(4, 1));
+        this.gameCanvas.lineTo(point(4, 3));
 
-        this.gameCanvas.moveTo(point(4, 'e'));
-        this.gameCanvas.lineTo(point(4, 'g'));
+        this.gameCanvas.moveTo(point(4, 5));
+        this.gameCanvas.lineTo(point(4, 7));
 
         this.gameCanvas.stroke();
     }

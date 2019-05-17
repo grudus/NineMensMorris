@@ -14,13 +14,13 @@ export const initHandQueue = (): Player[] => {
 
 export const initBoard = (): BoardPosition[] => {
     const columns = [
-        ['a', 'd', 'g'],
-        ['b', 'd', 'f'],
-        ['c', 'd', 'e'],
-        ['a', 'b', 'c', 'e', 'f', 'g'],
-        ['c', 'd', 'e'],
-        ['b', 'd', 'f'],
-        ['a', 'd', 'g'],
+        [1, 4, 7],
+        [2, 4, 6],
+        [3, 4, 5],
+        [1, 2, 3, 5, 6, 7],
+        [3, 4, 5],
+        [2, 4, 6],
+        [1, 4, 7],
     ];
     const board: BoardPosition[] = [];
 

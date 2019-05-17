@@ -1,22 +1,16 @@
-export interface Coordinate extends PartialCoordinate {
-    colIndex: number;
-}
-
-interface PartialCoordinate {
+export interface Coordinate {
     row: number;
-    col: string;
+    col: number;
 }
 
-const A_CODE = 'a'.charCodeAt(0);
-
-export function point(row: number, col: string): Coordinate {
-    return { row, col, colIndex: col.charCodeAt(0) - A_CODE };
+export function point(row: number, col: number): Coordinate {
+    return { row, col };
 }
 
 export function coordinatesFromIndexes(row: number, col: number): Coordinate {
-    return { row: row + 1, col: String.fromCharCode(A_CODE + col), colIndex: col };
+    return { row: row + 1, col: col + 1 };
 }
 
-export function areCoordsEquals(coord1: PartialCoordinate, coord2: PartialCoordinate) {
+export function areCoordsEquals(coord1: Coordinate, coord2: Coordinate) {
     return coord1.row == coord2.row && coord1.col == coord2.col;
 }

@@ -10,26 +10,26 @@ export class GameCanvasContext {
 
     public moveTo(coordinate: Coordinate) {
         this.ctx.moveTo(
-            this.squareSize * coordinate.colIndex + this.squareSize / 2,
+            this.squareSize * (coordinate.col - 1) + this.squareSize / 2,
             this.squareSize * (coordinate.row - 1) + this.squareSize / 2,
         );
     }
 
     public lineTo(coordinate: Coordinate) {
         this.ctx.lineTo(
-            this.squareSize * coordinate.colIndex + this.squareSize / 2,
+            this.squareSize * (coordinate.col - 1) + this.squareSize / 2,
             this.squareSize * (coordinate.row - 1) + this.squareSize / 2,
         );
     }
 
     public strokeRect(start: Coordinate, end: Coordinate) {
-        const x = this.squareSize * start.colIndex + this.squareSize / 2;
+        const x = this.squareSize * (start.col - 1) + this.squareSize / 2;
         const y = this.squareSize * (start.row - 1) + this.squareSize / 2;
 
         this.ctx.strokeRect(
             x,
             y,
-            this.squareSize * end.colIndex - x + this.squareSize / 2,
+            this.squareSize * (end.col - 1) - x + this.squareSize / 2,
             this.squareSize * (end.row - 1) - y + this.squareSize / 2,
         );
     }
@@ -59,7 +59,7 @@ export class GameCanvasContext {
     }
 
     private drawCircle(coordinate: Coordinate, radius: number) {
-        const xPosition = coordinate.colIndex * this.squareSize + this.squareSize / 2;
+        const xPosition = (coordinate.col - 1) * this.squareSize + this.squareSize / 2;
         const yPosition = (coordinate.row - 1) * this.squareSize + this.squareSize / 2;
 
         this.ctx.beginPath();

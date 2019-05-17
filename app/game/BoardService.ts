@@ -5,8 +5,8 @@ import { Player } from './Player';
 
 export class BoardService {
     private readonly cannotGoCoordinates = [
-        { from: { row: 4, col: 'c' }, to: { row: 4, col: 'e' } },
-        { from: { row: 3, col: 'd' }, to: { row: 5, col: 'd' } },
+        { from: { row: 4, col: 3 }, to: { row: 4, col: 5 } },
+        { from: { row: 3, col: 4 }, to: { row: 5, col: 4 } },
     ];
 
     public constructor(private board: BoardPosition[] = initBoard()) {}
@@ -33,7 +33,7 @@ export class BoardService {
                 if (areCoordsEquals(curr.coordinate, point)) {
                     acc.rowsInLine.push(curr);
                     acc.colsInLine.push(curr);
-                } else if (curr.coordinate.colIndex === point.colIndex) {
+                } else if (curr.coordinate.col === point.col) {
                     acc.colsInLine.push(curr);
                 } else if (curr.coordinate.row === point.row) {
                     acc.rowsInLine.push(curr);

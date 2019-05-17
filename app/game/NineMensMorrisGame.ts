@@ -12,7 +12,7 @@ const POINTS_TO_ENABLE_FLYING = 3;
 const POINTS_TO_GAME_OVER = 2;
 
 export class NineMensMorrisGame {
-    public static readonly NUMBER_OF_POINTS = 5;
+    public static readonly NUMBER_OF_POINTS = 9;
     public static readonly BOARD_SIZE = 7;
 
     private gameMoveEngine: GameMoveEngine;
