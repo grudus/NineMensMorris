@@ -3,15 +3,15 @@ import { GameDrawer } from './paint/GameDrawer';
 import { GameInfoWriter } from './paint/GameInfoWriter';
 import { MovesHistory } from './game/MovesHistory';
 import { BoardService } from './game/BoardService';
-import { PlayerRemainingPointsHeuristic } from './ai/heuristics/PlayerRemainingPointsHeuristic';
 import { Player } from './game/Player';
 import { GameMoveResult, NEXT_PLAYER_RESULTS } from './game/GameMoveResult';
 import { Coordinate } from './game/Coordinate';
 import { AlphaBetaAlgorithm } from './ai/AlphaBetaAlgorithm';
 import { GameAlgorithm } from './ai/GameAlgorithm';
+import { AlmostMillHeuristic } from './ai/heuristics/AlmostMillHeuristic';
 
-function makeComputerMove(minMaxAlgorithm: GameAlgorithm, game: NineMensMorrisGame) {
-    const tree = minMaxAlgorithm.buildGameTree(Player.PLAYER_2);
+function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
+    const tree = algorithm.buildGameTree(Player.PLAYER_2);
 
     console.log(tree.root.getChildren());
 
@@ -37,12 +37,13 @@ function makeComputerMove(minMaxAlgorithm: GameAlgorithm, game: NineMensMorrisGa
 (function() {
     console.log("HELLO IN THE NINE MEN'S MORRIS GAME");
 
-    const game = new NineMensMorrisGame(new MovesHistory(), new BoardService());
+    const boardService = new BoardService();
+    const game = new NineMensMorrisGame(new MovesHistory(), boardService);
     const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
     const infoWriter = new GameInfoWriter(game);
 
-    const minMaxAlgorithm = new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game);
+    const minMaxAlgorithm = new AlphaBetaAlgorithm(new AlmostMillHeuristic(boardService), game);
 
     const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
         infoWriter.update();

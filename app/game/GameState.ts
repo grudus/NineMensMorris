@@ -14,4 +14,5 @@ export interface GameState {
     board: Map<number, Player>;
     history: Move[];
     currentMove?: CurrentMove;
+    winner?: Player;
 }

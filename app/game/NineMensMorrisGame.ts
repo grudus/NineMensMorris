@@ -36,6 +36,7 @@ export class NineMensMorrisGame {
             history: [],
             destroyedOpponents: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentMove: null,
+            winner: null,
         };
         this.state = this.clone(newState);
         this.boardService.resetBoard(this.state.board);
@@ -190,7 +191,9 @@ export class NineMensMorrisGame {
         this.state.destroyedOpponents[this.currentPlayer]++;
         this.boardService.setPlayer(point, Player.NO_PLAYER);
 
-        if (Object.values(this.state.playerPoints).some(points => points === POINTS_TO_GAME_OVER)) {
+        if (this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
+            console.log('GAME OVER');
+            this.state.winner = nextPlayer(playerToRemove);
             this.setPhase(GamePhase.GAME_OVER);
         }
     }

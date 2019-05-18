@@ -1,10 +1,10 @@
 import { initBoard } from './InitialGameHelper';
-import { Coordinate, fromHash, hash, coord } from './Coordinate';
+import { coord, Coordinate, fromHash, hash } from './Coordinate';
 import { Player } from './Player';
 
 export class BoardService {
     private readonly neighbours: Map<number, Coordinate[]> = this.initNeighbours();
-    private readonly millCheckPositions: Map<number, Coordinate[][]> = this.initMillCheckPositions();
+    public readonly millCheckPositions: Map<number, Coordinate[][]> = this.initMillCheckPositions();
 
     public constructor(private board: Map<number, Player> = initBoard()) {}
 
@@ -13,7 +13,11 @@ export class BoardService {
     }
 
     public playerAt(coordinate: Coordinate): Player | null {
-        return this.board.get(hash(coordinate));
+        return this.playerAtHash(hash(coordinate));
+    }
+
+    public playerAtHash(hash: number): Player | null {
+        return this.board.get(hash);
     }
 
     public setPlayer(coordinate: Coordinate, player: Player) {
