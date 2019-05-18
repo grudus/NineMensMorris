@@ -1,4 +1,3 @@
-import { BoardPosition } from './BoardPosition';
 import { initBoard } from './InitialGameHelper';
 import { Coordinate, fromHash, hash, coord } from './Coordinate';
 import { Player } from './Player';
@@ -107,9 +106,4 @@ export class BoardService {
             [hash(coord(7, 7)), [[coord(7, 1), coord(7, 4)], [coord(1, 7), coord(4, 7)]]],
         ]);
     }
-}
-
-interface FindInLinePositionResults {
-    colsInLine: BoardPosition[];
-    rowsInLine: BoardPosition[];
 }

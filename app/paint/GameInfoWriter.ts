@@ -1,7 +1,7 @@
 import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { getPaintablePlayer } from './PaintablePlayer';
 import { Player } from '../game/Player';
-import { GameState } from '../game/GameState';
+import { GamePhase } from '../game/GamePhase';
 
 export class GameInfoWriter {
     private readonly currentPlayerText = document.getElementById('current-player-text');
@@ -11,12 +11,12 @@ export class GameInfoWriter {
         [Player.PLAYER_2]: document.getElementById('player-2-points'),
     };
 
-    private readonly gameStateToText = {
-        [GameState.INITIAL]: 'Initial',
-        [GameState.MOVE_SELECTED_POINT]: 'Move coordinate',
-        [GameState.SELECT_POINT_TO_MOVE]: 'Select coordinate',
-        [GameState.MILL]: 'Mill',
-        [GameState.GAME_OVER]: 'The end',
+    private readonly gamePhaseToText = {
+        [GamePhase.INITIAL]: 'Initial',
+        [GamePhase.MOVE_SELECTED_POINT]: 'Move coordinate',
+        [GamePhase.SELECT_POINT_TO_MOVE]: 'Select coordinate',
+        [GamePhase.MILL]: 'Mill',
+        [GamePhase.GAME_OVER]: 'The end',
     };
 
     public constructor(private game: NineMensMorrisGame) {}
@@ -35,7 +35,7 @@ export class GameInfoWriter {
     }
 
     private updateGameState() {
-        this.moveTypeText.innerText = this.gameStateToText[this.game.currentState] || 'Unknown state';
+        this.moveTypeText.innerText = this.gamePhaseToText[this.game.currentPhase] || 'Unknown phase';
     }
 
     private updateHistoryMoves() {

@@ -1,11 +1,12 @@
 import { GameHeuristic } from './heuristics/GameHeuristic';
 import { nextPlayer, Player } from '../game/Player';
-import { NineMensMorrisGame, NineMensMorrisState } from '../game/NineMensMorrisGame';
+import { NineMensMorrisGame } from '../game/NineMensMorrisGame';
 import { Tree, TreeNode } from '../tree/Tree';
 import { GameNodeValue } from '../tree/GameNodeValue';
 import { GameMoveResult } from '../game/GameMoveResult';
-import { GameState } from '../game/GameState';
 import { Coordinate } from '../game/Coordinate';
+import { GameState } from '../game/GameState';
+import { GamePhase } from '../game/GamePhase';
 
 type BetterEvaluation = (a: number, b: number) => number;
 
@@ -23,7 +24,7 @@ export class MinMaxAlgorithm {
     }
 
     private minMax(
-        state: NineMensMorrisState,
+        state: GameState,
         currentPlayer: Player,
         maximizingPlayer: Player,
         depth: number,
@@ -109,8 +110,8 @@ export class MinMaxAlgorithm {
         return nodesToSearch;
     }
 
-    private findOptimalDepth(state: NineMensMorrisState): number {
-        if (state.gameState === GameState.INITIAL) {
+    private findOptimalDepth(state: GameState): number {
+        if (state.gamePhase === GamePhase.INITIAL) {
             return 3;
         }
         if (this.game.isFlyingActive()) {

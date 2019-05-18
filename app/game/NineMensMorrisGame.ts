@@ -2,10 +2,12 @@ import { nextPlayer, Player } from './Player';
 import { areCoordsEquals, Coordinate } from './Coordinate';
 import * as InitialGameHelper from './InitialGameHelper';
 import { GameState } from './GameState';
-import { CurrentMove, GameMoveEngine } from './GameMoveEngine';
+import { GameMoveEngine } from './GameMoveEngine';
 import { GameMoveResult } from './GameMoveResult';
-import { Move, MovesHistory } from './MovesHistory';
+import { MovesHistory } from './MovesHistory';
 import { BoardService } from './BoardService';
+import { GamePhase } from './GamePhase';
+import { CurrentMove } from './CurrentMove';
 
 const POINTS_TO_ENABLE_FLYING = 3;
 const POINTS_TO_GAME_OVER = 2;
@@ -15,19 +17,19 @@ export class NineMensMorrisGame {
     public static readonly BOARD_SIZE = 7;
 
     private gameMoveEngine: GameMoveEngine;
-    private state: NineMensMorrisState = this.resetState();
+    private state: GameState = this.resetState();
 
     public constructor(private movesHistory: MovesHistory, public boardService: BoardService) {
         this.gameMoveEngine = new GameMoveEngine(this);
         this.boardService.resetBoard(this.state.board);
     }
 
-    public resetState(state?: NineMensMorrisState): NineMensMorrisState {
+    public resetState(state?: GameState): GameState {
         const newState = state || {
             initialHandQueue: InitialGameHelper.initHandQueue(),
             millPlayer: null,
-            gameState: GameState.INITIAL,
-            prevState: GameState.INITIAL,
+            gamePhase: GamePhase.INITIAL,
+            prevPhase: GamePhase.INITIAL,
             playerPoints: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentPlayerMove: Player.PLAYER_1,
             board: InitialGameHelper.initBoard(),
@@ -41,7 +43,7 @@ export class NineMensMorrisGame {
         return newState;
     }
 
-    public getState(): NineMensMorrisState {
+    public getState(): GameState {
         return this.clone(this.state);
     }
 
@@ -74,9 +76,9 @@ export class NineMensMorrisGame {
     public setNextPlayerMove() {
         if (this.state.initialHandQueue.length) {
             this.state.currentPlayerMove = this.state.initialHandQueue.pop();
-            this.setState(this.state.initialHandQueue.length ? GameState.INITIAL : GameState.SELECT_POINT_TO_MOVE);
+            this.setPhase(this.state.initialHandQueue.length ? GamePhase.INITIAL : GamePhase.SELECT_POINT_TO_MOVE);
         } else {
-            this.setState(GameState.SELECT_POINT_TO_MOVE);
+            this.setPhase(GamePhase.SELECT_POINT_TO_MOVE);
             this.state.currentPlayerMove = nextPlayer(this.state.currentPlayerMove);
         }
     }
@@ -101,7 +103,7 @@ export class NineMensMorrisGame {
         const isMill = this.boardService.isCoordinatePartOfMill(changedCoordinate);
         this.state.millPlayer = isMill ? this.currentPlayer : null;
         if (isMill) {
-            this.setState(GameState.MILL);
+            this.setPhase(GamePhase.MILL);
         }
         return isMill;
     }
@@ -115,7 +117,7 @@ export class NineMensMorrisGame {
     }
 
     public isGameOver(): boolean {
-        return this.state.gameState === GameState.GAME_OVER;
+        return this.state.gamePhase === GamePhase.GAME_OVER;
     }
 
     public isNoPlayer(coordinate: Coordinate): boolean {
@@ -153,14 +155,14 @@ export class NineMensMorrisGame {
         return Object.values(this.state.playerPoints).some(points => points === POINTS_TO_ENABLE_FLYING);
     }
 
-    public get currentState(): GameState {
-        return this.state.gameState;
+    public get currentPhase(): GamePhase {
+        return this.state.gamePhase;
     }
 
-    public setState(state: GameState) {
+    public setPhase(phase: GamePhase) {
         if (this.isGameOver()) return;
-        if (state !== GameState.MOVE_SELECTED_POINT) this.state.prevState = this.state.gameState;
-        this.state.gameState = state;
+        if (phase !== GamePhase.MOVE_SELECTED_POINT) this.state.prevPhase = this.state.gamePhase;
+        this.state.gamePhase = phase;
     }
 
     public get currentPlayer(): Player {
@@ -168,14 +170,14 @@ export class NineMensMorrisGame {
     }
 
     public findSelectableCoordinates(coordinate?: Coordinate): Coordinate[] {
-        switch (this.currentState) {
-            case GameState.INITIAL:
+        switch (this.currentPhase) {
+            case GamePhase.INITIAL:
                 return this.boardService.findPlayerCoordinates(Player.NO_PLAYER);
-            case GameState.SELECT_POINT_TO_MOVE:
+            case GamePhase.SELECT_POINT_TO_MOVE:
                 return this.boardService.findPlayerCoordinates(this.currentPlayer);
-            case GameState.MILL:
+            case GamePhase.MILL:
                 return this.allOpponentPositions();
-            case GameState.MOVE_SELECTED_POINT:
+            case GamePhase.MOVE_SELECTED_POINT:
                 return this.possibleMoves(coordinate);
             default:
                 return [];
@@ -189,12 +191,12 @@ export class NineMensMorrisGame {
         this.boardService.setPlayer(point, Player.NO_PLAYER);
 
         if (Object.values(this.state.playerPoints).some(points => points === POINTS_TO_GAME_OVER)) {
-            this.setState(GameState.GAME_OVER);
+            this.setPhase(GamePhase.GAME_OVER);
         }
     }
 
     public clearMill() {
-        this.setState(this.state.prevState);
+        this.setPhase(this.state.prevPhase);
         this.state.millPlayer = null;
     }
 
@@ -205,17 +207,4 @@ export class NineMensMorrisGame {
     public get currentMove(): CurrentMove {
         return this.state.currentMove;
     }
-}
-
-export interface NineMensMorrisState {
-    initialHandQueue: Player[];
-    currentPlayerMove: Player;
-    millPlayer?: Player;
-    gameState: GameState;
-    prevState: GameState;
-    playerPoints: { [Player.PLAYER_1]: number; [Player.PLAYER_2]: number };
-    destroyedOpponents: { [Player.PLAYER_1]: number; [Player.PLAYER_2]: number };
-    board: Map<number, Player>;
-    history: Move[];
-    currentMove?: CurrentMove;
 }

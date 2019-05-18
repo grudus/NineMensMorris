@@ -9,4 +9,3 @@ export enum GameMoveResult {
 }
 
 export const NEXT_PLAYER_RESULTS = [GameMoveResult.SUCCESSFUL_MOVE, GameMoveResult.OPPONENT_DESTROYED];
-export const PARTIAL_MOVES = [GameMoveResult.FIRST_MOVE_PART, GameMoveResult.MILL];

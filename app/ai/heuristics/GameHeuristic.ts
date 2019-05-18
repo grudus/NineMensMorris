@@ -1,6 +1,6 @@
 import { Player } from '../../game/Player';
-import { NineMensMorrisState } from '../../game/NineMensMorrisGame';
+import { GameState } from '../../game/GameState';
 
 export interface GameHeuristic {
-    calculateBoard(state: NineMensMorrisState, player: Player): number;
+    calculateBoard(state: GameState, player: Player): number;
 }

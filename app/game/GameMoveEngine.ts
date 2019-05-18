@@ -1,8 +1,7 @@
 import { NineMensMorrisGame } from './NineMensMorrisGame';
 import { areCoordsEquals, Coordinate } from './Coordinate';
-import { GameState } from './GameState';
 import { GameMoveResult } from './GameMoveResult';
-import { Player } from './Player';
+import { GamePhase } from './GamePhase';
 
 export class GameMoveEngine {
     public constructor(private game: NineMensMorrisGame) {}
@@ -13,7 +12,7 @@ export class GameMoveEngine {
         }
         if (this.game.isMill()) {
             return this.makeMillMove(point);
-        } else if (this.game.currentState == GameState.INITIAL) {
+        } else if (this.game.currentPhase == GamePhase.INITIAL) {
             return this.makeInitialMove(point);
         } else {
             return this.makeMoveInNormalPhase(point);
@@ -47,7 +46,7 @@ export class GameMoveEngine {
             return GameMoveResult.CANNOT_MOVE;
         }
         this.game.currentMove = { point, neighbours: this.game.possibleMoves(point), player: this.game.currentPlayer };
-        this.game.setState(GameState.MOVE_SELECTED_POINT);
+        this.game.setPhase(GamePhase.MOVE_SELECTED_POINT);
         return GameMoveResult.FIRST_MOVE_PART;
     }
 
@@ -56,7 +55,7 @@ export class GameMoveEngine {
 
         if (!pointToMove) {
             this.game.currentMove = null;
-            this.game.setState(GameState.SELECT_POINT_TO_MOVE);
+            this.game.setPhase(GamePhase.SELECT_POINT_TO_MOVE);
             return GameMoveResult.RESTART_MOVE;
         }
 
@@ -80,10 +79,4 @@ export class GameMoveEngine {
         }
         return GameMoveResult.INVALID_MILL_MOVE;
     }
-}
-
-export interface CurrentMove {
-    point: Coordinate;
-    neighbours: Coordinate[];
-    player: Player;
 }
