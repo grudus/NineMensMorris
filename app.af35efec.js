@@ -209,22 +209,7 @@ exports.initBoard = function () {
 
   return board;
 };
-},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/game/GameState.ts":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var GameState;
-
-(function (GameState) {
-  GameState["INITIAL"] = "INITIAL";
-  GameState["SELECT_POINT_TO_MOVE"] = "SELECT_POINT_TO_MOVE";
-  GameState["MOVE_SELECTED_POINT"] = "MOVE_SELECTED_POINT";
-  GameState["MILL"] = "MILL";
-  GameState["GAME_OVER"] = "GAME_OVER";
-})(GameState = exports.GameState || (exports.GameState = {}));
-},{}],"app/game/GameMoveResult.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/game/GameMoveResult.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -243,7 +228,21 @@ var GameMoveResult;
 })(GameMoveResult = exports.GameMoveResult || (exports.GameMoveResult = {}));
 
 exports.NEXT_PLAYER_RESULTS = [GameMoveResult.SUCCESSFUL_MOVE, GameMoveResult.OPPONENT_DESTROYED];
-exports.PARTIAL_MOVES = [GameMoveResult.FIRST_MOVE_PART, GameMoveResult.MILL];
+},{}],"app/game/GamePhase.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var GamePhase;
+
+(function (GamePhase) {
+  GamePhase["INITIAL"] = "INITIAL";
+  GamePhase["SELECT_POINT_TO_MOVE"] = "SELECT_POINT_TO_MOVE";
+  GamePhase["MOVE_SELECTED_POINT"] = "MOVE_SELECTED_POINT";
+  GamePhase["MILL"] = "MILL";
+  GamePhase["GAME_OVER"] = "GAME_OVER";
+})(GamePhase = exports.GamePhase || (exports.GamePhase = {}));
 },{}],"app/game/GameMoveEngine.ts":[function(require,module,exports) {
 "use strict";
 
@@ -259,9 +258,9 @@ Object.defineProperty(exports, "__esModule", {
 
 var Coordinate_1 = require("./Coordinate");
 
-var GameState_1 = require("./GameState");
-
 var GameMoveResult_1 = require("./GameMoveResult");
+
+var GamePhase_1 = require("./GamePhase");
 
 var GameMoveEngine =
 /*#__PURE__*/
@@ -281,7 +280,7 @@ function () {
 
       if (this.game.isMill()) {
         return this.makeMillMove(point);
-      } else if (this.game.currentState == GameState_1.GameState.INITIAL) {
+      } else if (this.game.currentPhase == GamePhase_1.GamePhase.INITIAL) {
         return this.makeInitialMove(point);
       } else {
         return this.makeMoveInNormalPhase(point);
@@ -326,7 +325,7 @@ function () {
         neighbours: this.game.possibleMoves(point),
         player: this.game.currentPlayer
       };
-      this.game.setState(GameState_1.GameState.MOVE_SELECTED_POINT);
+      this.game.setPhase(GamePhase_1.GamePhase.MOVE_SELECTED_POINT);
       return GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART;
     }
   }, {
@@ -338,7 +337,7 @@ function () {
 
       if (!pointToMove) {
         this.game.currentMove = null;
-        this.game.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
+        this.game.setPhase(GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE);
         return GameMoveResult_1.GameMoveResult.RESTART_MOVE;
       }
 
@@ -370,7 +369,7 @@ function () {
 }();
 
 exports.GameMoveEngine = GameMoveEngine;
-},{"./Coordinate":"app/game/Coordinate.ts","./GameState":"app/game/GameState.ts","./GameMoveResult":"app/game/GameMoveResult.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
+},{"./Coordinate":"app/game/Coordinate.ts","./GameMoveResult":"app/game/GameMoveResult.ts","./GamePhase":"app/game/GamePhase.ts"}],"app/game/NineMensMorrisGame.ts":[function(require,module,exports) {
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -403,9 +402,9 @@ var Coordinate_1 = require("./Coordinate");
 
 var InitialGameHelper = __importStar(require("./InitialGameHelper"));
 
-var GameState_1 = require("./GameState");
-
 var GameMoveEngine_1 = require("./GameMoveEngine");
+
+var GamePhase_1 = require("./GamePhase");
 
 var POINTS_TO_ENABLE_FLYING = 3;
 var POINTS_TO_GAME_OVER = 2;
@@ -431,8 +430,8 @@ function () {
       var newState = state || {
         initialHandQueue: InitialGameHelper.initHandQueue(),
         millPlayer: null,
-        gameState: GameState_1.GameState.INITIAL,
-        prevState: GameState_1.GameState.INITIAL,
+        gamePhase: GamePhase_1.GamePhase.INITIAL,
+        prevPhase: GamePhase_1.GamePhase.INITIAL,
         playerPoints: (_playerPoints = {}, _defineProperty(_playerPoints, Player_1.Player.PLAYER_1, 0), _defineProperty(_playerPoints, Player_1.Player.PLAYER_2, 0), _playerPoints),
         currentPlayerMove: Player_1.Player.PLAYER_1,
         board: InitialGameHelper.initBoard(),
@@ -487,9 +486,9 @@ function () {
     value: function setNextPlayerMove() {
       if (this.state.initialHandQueue.length) {
         this.state.currentPlayerMove = this.state.initialHandQueue.pop();
-        this.setState(this.state.initialHandQueue.length ? GameState_1.GameState.INITIAL : GameState_1.GameState.SELECT_POINT_TO_MOVE);
+        this.setPhase(this.state.initialHandQueue.length ? GamePhase_1.GamePhase.INITIAL : GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE);
       } else {
-        this.setState(GameState_1.GameState.SELECT_POINT_TO_MOVE);
+        this.setPhase(GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE);
         this.state.currentPlayerMove = Player_1.nextPlayer(this.state.currentPlayerMove);
       }
     }
@@ -521,7 +520,7 @@ function () {
       this.state.millPlayer = isMill ? this.currentPlayer : null;
 
       if (isMill) {
-        this.setState(GameState_1.GameState.MILL);
+        this.setPhase(GamePhase_1.GamePhase.MILL);
       }
 
       return isMill;
@@ -539,7 +538,7 @@ function () {
   }, {
     key: "isGameOver",
     value: function isGameOver() {
-      return this.state.gameState === GameState_1.GameState.GAME_OVER;
+      return this.state.gamePhase === GamePhase_1.GamePhase.GAME_OVER;
     }
   }, {
     key: "isNoPlayer",
@@ -595,26 +594,26 @@ function () {
       });
     }
   }, {
-    key: "setState",
-    value: function setState(state) {
+    key: "setPhase",
+    value: function setPhase(phase) {
       if (this.isGameOver()) return;
-      if (state !== GameState_1.GameState.MOVE_SELECTED_POINT) this.state.prevState = this.state.gameState;
-      this.state.gameState = state;
+      if (phase !== GamePhase_1.GamePhase.MOVE_SELECTED_POINT) this.state.prevPhase = this.state.gamePhase;
+      this.state.gamePhase = phase;
     }
   }, {
     key: "findSelectableCoordinates",
     value: function findSelectableCoordinates(coordinate) {
-      switch (this.currentState) {
-        case GameState_1.GameState.INITIAL:
+      switch (this.currentPhase) {
+        case GamePhase_1.GamePhase.INITIAL:
           return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
 
-        case GameState_1.GameState.SELECT_POINT_TO_MOVE:
+        case GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE:
           return this.boardService.findPlayerCoordinates(this.currentPlayer);
 
-        case GameState_1.GameState.MILL:
+        case GamePhase_1.GamePhase.MILL:
           return this.allOpponentPositions();
 
-        case GameState_1.GameState.MOVE_SELECTED_POINT:
+        case GamePhase_1.GamePhase.MOVE_SELECTED_POINT:
           return this.possibleMoves(coordinate);
 
         default:
@@ -632,19 +631,19 @@ function () {
       if (Object.values(this.state.playerPoints).some(function (points) {
         return points === POINTS_TO_GAME_OVER;
       })) {
-        this.setState(GameState_1.GameState.GAME_OVER);
+        this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
       }
     }
   }, {
     key: "clearMill",
     value: function clearMill() {
-      this.setState(this.state.prevState);
+      this.setPhase(this.state.prevPhase);
       this.state.millPlayer = null;
     }
   }, {
-    key: "currentState",
+    key: "currentPhase",
     get: function get() {
-      return this.state.gameState;
+      return this.state.gamePhase;
     }
   }, {
     key: "currentPlayer",
@@ -667,7 +666,7 @@ function () {
 NineMensMorrisGame.NUMBER_OF_POINTS = 9;
 NineMensMorrisGame.BOARD_SIZE = 7;
 exports.NineMensMorrisGame = NineMensMorrisGame;
-},{"./Player":"app/game/Player.ts","./Coordinate":"app/game/Coordinate.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GameState":"app/game/GameState.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
+},{"./Player":"app/game/Player.ts","./Coordinate":"app/game/Coordinate.ts","./InitialGameHelper":"app/game/InitialGameHelper.ts","./GameMoveEngine":"app/game/GameMoveEngine.ts","./GamePhase":"app/game/GamePhase.ts"}],"app/paint/GameCanvasContext.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1014,13 +1013,13 @@ var PaintablePlayer_1 = require("./PaintablePlayer");
 
 var Player_1 = require("../game/Player");
 
-var GameState_1 = require("../game/GameState");
+var GamePhase_1 = require("../game/GamePhase");
 
 var GameInfoWriter =
 /*#__PURE__*/
 function () {
   function GameInfoWriter(game) {
-    var _this$playerPoints, _this$gameStateToText;
+    var _this$playerPoints, _this$gamePhaseToText;
 
     _classCallCheck(this, GameInfoWriter);
 
@@ -1028,7 +1027,7 @@ function () {
     this.currentPlayerText = document.getElementById('current-player-text');
     this.moveTypeText = document.getElementById('game-state');
     this.playerPoints = (_this$playerPoints = {}, _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_1, document.getElementById('player-1-points')), _defineProperty(_this$playerPoints, Player_1.Player.PLAYER_2, document.getElementById('player-2-points')), _this$playerPoints);
-    this.gameStateToText = (_this$gameStateToText = {}, _defineProperty(_this$gameStateToText, GameState_1.GameState.INITIAL, 'Initial'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MOVE_SELECTED_POINT, 'Move coordinate'), _defineProperty(_this$gameStateToText, GameState_1.GameState.SELECT_POINT_TO_MOVE, 'Select coordinate'), _defineProperty(_this$gameStateToText, GameState_1.GameState.MILL, 'Mill'), _defineProperty(_this$gameStateToText, GameState_1.GameState.GAME_OVER, 'The end'), _this$gameStateToText);
+    this.gamePhaseToText = (_this$gamePhaseToText = {}, _defineProperty(_this$gamePhaseToText, GamePhase_1.GamePhase.INITIAL, 'Initial'), _defineProperty(_this$gamePhaseToText, GamePhase_1.GamePhase.MOVE_SELECTED_POINT, 'Move coordinate'), _defineProperty(_this$gamePhaseToText, GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE, 'Select coordinate'), _defineProperty(_this$gamePhaseToText, GamePhase_1.GamePhase.MILL, 'Mill'), _defineProperty(_this$gamePhaseToText, GamePhase_1.GamePhase.GAME_OVER, 'The end'), _this$gamePhaseToText);
   }
 
   _createClass(GameInfoWriter, [{
@@ -1049,7 +1048,7 @@ function () {
   }, {
     key: "updateGameState",
     value: function updateGameState() {
-      this.moveTypeText.innerText = this.gameStateToText[this.game.currentState] || 'Unknown state';
+      this.moveTypeText.innerText = this.gamePhaseToText[this.game.currentPhase] || 'Unknown phase';
     }
   }, {
     key: "updateHistoryMoves",
@@ -1074,7 +1073,7 @@ function () {
 }();
 
 exports.GameInfoWriter = GameInfoWriter;
-},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts","../game/Player":"app/game/Player.ts","../game/GameState":"app/game/GameState.ts"}],"app/game/MovesHistory.ts":[function(require,module,exports) {
+},{"./PaintablePlayer":"app/paint/PaintablePlayer.ts","../game/Player":"app/game/Player.ts","../game/GamePhase":"app/game/GamePhase.ts"}],"app/game/MovesHistory.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1241,7 +1240,40 @@ function () {
 }();
 
 exports.BoardService = BoardService;
-},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
+},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Player_1 = require("../../game/Player");
+
+var PlayerRemainingPointsHeuristic =
+/*#__PURE__*/
+function () {
+  function PlayerRemainingPointsHeuristic() {
+    _classCallCheck(this, PlayerRemainingPointsHeuristic);
+  }
+
+  _createClass(PlayerRemainingPointsHeuristic, [{
+    key: "calculateBoard",
+    value: function calculateBoard(state, player) {
+      return state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)];
+    }
+  }]);
+
+  return PlayerRemainingPointsHeuristic;
+}();
+
+exports.PlayerRemainingPointsHeuristic = PlayerRemainingPointsHeuristic;
+},{"../../game/Player":"app/game/Player.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1295,7 +1327,62 @@ var Tree = function Tree(root) {
 };
 
 exports.Tree = Tree;
-},{}],"app/ai/MinMaxAlgorithm.ts":[function(require,module,exports) {
+},{}],"app/ai/NodeBuilder.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Tree_1 = require("../tree/Tree");
+
+var GameMoveResult_1 = require("../game/GameMoveResult");
+
+function buildNodesToSearch(game, parentNode) {
+  var state = game.getState();
+  var nodesToSearch = [];
+
+  var addToSearch = function addToSearch(movesToValidState) {
+    nodesToSearch.push(new Tree_1.TreeNode({
+      movesToValidState: movesToValidState,
+      evaluation: null
+    }, parentNode));
+  };
+
+  game.findSelectableCoordinates().forEach(function (coord) {
+    game.resetState(state);
+    var result = game.tryToMakeMove(coord);
+
+    if (result === GameMoveResult_1.GameMoveResult.MILL) {
+      game.findSelectableCoordinates(coord).forEach(function (millCoord) {
+        addToSearch([coord, millCoord]);
+      });
+    } else if (result === GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART) {
+      var coordinatesForFinalMove = game.findSelectableCoordinates(coord);
+      var stateAfterFirstMove = game.getState();
+      coordinatesForFinalMove.forEach(function (finalMoveCoordinate) {
+        game.resetState(stateAfterFirstMove);
+        var finalMoveResult = game.tryToMakeMove(finalMoveCoordinate);
+
+        if (finalMoveResult === GameMoveResult_1.GameMoveResult.MILL) {
+          game.findSelectableCoordinates(finalMoveCoordinate).forEach(function (millCoord) {
+            addToSearch([coord, finalMoveCoordinate, millCoord]);
+          });
+        } else {
+          addToSearch([coord, finalMoveCoordinate]);
+        }
+      });
+    } else {
+      addToSearch([coord]);
+    }
+  });
+  game.resetState(state);
+  parentNode.setChildren(nodesToSearch);
+  return nodesToSearch;
+}
+
+exports.buildNodesToSearch = buildNodesToSearch;
+},{"../tree/Tree":"app/tree/Tree.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts"}],"app/ai/AlphaBetaAlgorithm.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1312,36 +1399,36 @@ var Player_1 = require("../game/Player");
 
 var Tree_1 = require("../tree/Tree");
 
-var GameMoveResult_1 = require("../game/GameMoveResult");
+var GamePhase_1 = require("../game/GamePhase");
 
-var GameState_1 = require("../game/GameState");
+var NodeBuilder_1 = require("./NodeBuilder");
 
-var MinMaxAlgorithm =
+var AlphaBetaAlgorithm =
 /*#__PURE__*/
 function () {
-  function MinMaxAlgorithm(heuristic, game) {
-    _classCallCheck(this, MinMaxAlgorithm);
+  function AlphaBetaAlgorithm(heuristic, game) {
+    _classCallCheck(this, AlphaBetaAlgorithm);
 
     this.heuristic = heuristic;
     this.game = game;
   }
 
-  _createClass(MinMaxAlgorithm, [{
+  _createClass(AlphaBetaAlgorithm, [{
     key: "buildGameTree",
-    value: function buildGameTree(currentPlayer) {
+    value: function buildGameTree(maximizingPlayer) {
       var initialState = this.game.getState();
       var depth = this.findOptimalDepth(initialState);
       var tree = new Tree_1.Tree({
         evaluation: 0,
         movesToValidState: null
       });
-      this.minMax(initialState, currentPlayer, currentPlayer, depth, tree.root);
+      this.alphaBeta(initialState, maximizingPlayer, maximizingPlayer, -Infinity, Infinity, depth, tree.root);
       this.game.resetState(initialState);
       return tree;
     }
   }, {
-    key: "minMax",
-    value: function minMax(state, currentPlayer, maximizingPlayer, depth, parentNode) {
+    key: "alphaBeta",
+    value: function alphaBeta(state, currentPlayer, maximizingPlayer, alpha, beta, depth, parentNode) {
       var _this = this;
 
       this.game.resetState(state);
@@ -1350,85 +1437,66 @@ function () {
         return this.heuristic.calculateBoard(state, Player_1.Player.PLAYER_2);
       }
 
-      var _minOrMax = function _minOrMax(initialEvaluation, betterEvaluation) {
+      var _alphaOrBeta = function _alphaOrBeta(initialEvaluation, betterEvaluation, nextAlpha, nextBeta) {
         var bestEvaluation = initialEvaluation;
+        var nodesToSearch = NodeBuilder_1.buildNodesToSearch(_this.game, parentNode);
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
 
-        _this.buildNodesToSearch(parentNode).forEach(function (node) {
-          _this.game.resetState(state);
+        try {
+          for (var _iterator = nodesToSearch[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var node = _step.value;
 
-          node.value.movesToValidState.forEach(function (coord) {
-            _this.game.tryToMakeMove(coord);
-          });
+            _this.game.resetState(state);
 
-          var evaluation = _this.minMax(_this.game.getState(), Player_1.nextPlayer(currentPlayer), maximizingPlayer, depth - 1, node);
+            node.value.movesToValidState.forEach(function (coord) {
+              _this.game.tryToMakeMove(coord);
+            });
 
-          node.value.evaluation = evaluation;
-          bestEvaluation = betterEvaluation(bestEvaluation, evaluation);
-        });
+            var evaluation = _this.alphaBeta(_this.game.getState(), Player_1.nextPlayer(currentPlayer), maximizingPlayer, alpha, beta, depth - 1, node);
+
+            node.value.evaluation = evaluation;
+            bestEvaluation = betterEvaluation(bestEvaluation, evaluation);
+            alpha = nextAlpha(alpha, evaluation);
+            beta = nextBeta(beta, evaluation);
+
+            if (beta <= alpha) {
+              break;
+            }
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return != null) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
 
         return bestEvaluation;
       };
 
       if (currentPlayer === maximizingPlayer) {
-        return _minOrMax(-Infinity, Math.max);
+        return _alphaOrBeta(-Infinity, Math.max, Math.max, function (_beta) {
+          return _beta;
+        });
       } else {
-        return _minOrMax(Infinity, Math.min);
+        return _alphaOrBeta(Infinity, Math.min, function (_alpha) {
+          return _alpha;
+        }, Math.max);
       }
-    }
-  }, {
-    key: "buildNodesToSearch",
-    value: function buildNodesToSearch(parentNode) {
-      var _this2 = this;
-
-      var state = this.game.getState();
-      var nodesToSearch = [];
-
-      var addToSearch = function addToSearch(movesToValidState) {
-        nodesToSearch.push(new Tree_1.TreeNode({
-          movesToValidState: movesToValidState,
-          evaluation: null
-        }, parentNode));
-      };
-
-      this.game.findSelectableCoordinates().forEach(function (coord) {
-        _this2.game.resetState(state);
-
-        var result = _this2.game.tryToMakeMove(coord);
-
-        if (result === GameMoveResult_1.GameMoveResult.MILL) {
-          _this2.game.findSelectableCoordinates(coord).forEach(function (millCoord) {
-            addToSearch([coord, millCoord]);
-          });
-        } else if (result === GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART) {
-          var coordinatesForFinalMove = _this2.game.findSelectableCoordinates(coord);
-
-          var stateAfterFirstMove = _this2.game.getState();
-
-          coordinatesForFinalMove.forEach(function (finalMoveCoordinate) {
-            _this2.game.resetState(stateAfterFirstMove);
-
-            var finalMoveResult = _this2.game.tryToMakeMove(finalMoveCoordinate);
-
-            if (finalMoveResult === GameMoveResult_1.GameMoveResult.MILL) {
-              _this2.game.findSelectableCoordinates(finalMoveCoordinate).forEach(function (millCoord) {
-                addToSearch([coord, finalMoveCoordinate, millCoord]);
-              });
-            } else {
-              addToSearch([coord, finalMoveCoordinate]);
-            }
-          });
-        } else {
-          addToSearch([coord]);
-        }
-      });
-      this.game.resetState(state);
-      parentNode.setChildren(nodesToSearch);
-      return nodesToSearch;
     }
   }, {
     key: "findOptimalDepth",
     value: function findOptimalDepth(state) {
-      if (state.gameState === GameState_1.GameState.INITIAL) {
+      if (state.gamePhase === GamePhase_1.GamePhase.INITIAL) {
         return 3;
       }
 
@@ -1440,44 +1508,11 @@ function () {
     }
   }]);
 
-  return MinMaxAlgorithm;
+  return AlphaBetaAlgorithm;
 }();
 
-exports.MinMaxAlgorithm = MinMaxAlgorithm;
-},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GameMoveResult":"app/game/GameMoveResult.ts","../game/GameState":"app/game/GameState.ts"}],"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Player_1 = require("../../game/Player");
-
-var PlayerRemainingPointsHeuristic =
-/*#__PURE__*/
-function () {
-  function PlayerRemainingPointsHeuristic() {
-    _classCallCheck(this, PlayerRemainingPointsHeuristic);
-  }
-
-  _createClass(PlayerRemainingPointsHeuristic, [{
-    key: "calculateBoard",
-    value: function calculateBoard(state, player) {
-      return state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)];
-    }
-  }]);
-
-  return PlayerRemainingPointsHeuristic;
-}();
-
-exports.PlayerRemainingPointsHeuristic = PlayerRemainingPointsHeuristic;
-},{"../../game/Player":"app/game/Player.ts"}],"app/index.ts":[function(require,module,exports) {
+exports.AlphaBetaAlgorithm = AlphaBetaAlgorithm;
+},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GamePhase":"app/game/GamePhase.ts","./NodeBuilder":"app/ai/NodeBuilder.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1494,13 +1529,13 @@ var MovesHistory_1 = require("./game/MovesHistory");
 
 var BoardService_1 = require("./game/BoardService");
 
-var MinMaxAlgorithm_1 = require("./ai/MinMaxAlgorithm");
-
 var PlayerRemainingPointsHeuristic_1 = require("./ai/heuristics/PlayerRemainingPointsHeuristic");
 
 var Player_1 = require("./game/Player");
 
 var GameMoveResult_1 = require("./game/GameMoveResult");
+
+var AlphaBetaAlgorithm_1 = require("./ai/AlphaBetaAlgorithm");
 
 function makeComputerMove(minMaxAlgorithm, game) {
   var tree = minMaxAlgorithm.buildGameTree(Player_1.Player.PLAYER_2);
@@ -1527,7 +1562,7 @@ function makeComputerMove(minMaxAlgorithm, game) {
   var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), new BoardService_1.BoardService());
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
-  var minMaxAlgorithm = new MinMaxAlgorithm_1.MinMaxAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
+  var minMaxAlgorithm = new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
   var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
     infoWriter.update();
 
@@ -1541,7 +1576,7 @@ function makeComputerMove(minMaxAlgorithm, game) {
   });
   infoWriter.update();
 })();
-},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./ai/MinMaxAlgorithm":"app/ai/MinMaxAlgorithm.ts","./ai/heuristics/PlayerRemainingPointsHeuristic":"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./ai/heuristics/PlayerRemainingPointsHeuristic":"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts","./ai/AlphaBetaAlgorithm":"app/ai/AlphaBetaAlgorithm.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1569,7 +1604,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51100" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49972" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
