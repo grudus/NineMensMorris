@@ -149,6 +149,10 @@ export class NineMensMorrisGame {
         return this.boardService.findNeighbours(coordinate);
     }
 
+    public isFlyingActive(): boolean {
+        return Object.values(this.state.playerPoints).some(points => points === POINTS_TO_ENABLE_FLYING);
+    }
+
     public get currentState(): GameState {
         return this.state.gameState;
     }

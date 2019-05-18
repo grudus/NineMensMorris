@@ -3,30 +3,31 @@ import { nextPlayer, Player } from '../game/Player';
 import { NineMensMorrisGame, NineMensMorrisState } from '../game/NineMensMorrisGame';
 import { Tree, TreeNode } from '../tree/Tree';
 import { GameNodeValue } from '../tree/GameNodeValue';
-import { Coordinate } from '../game/Coordinate';
 import { GameMoveResult } from '../game/GameMoveResult';
 import { GameState } from '../game/GameState';
+import { Coordinate } from '../game/Coordinate';
+
+type BetterEvaluation = (a: number, b: number) => number;
 
 export class MinMaxAlgorithm {
     public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame) {}
 
-    public minMax(state: NineMensMorrisState, currentPlayer: Player): Tree<GameNodeValue> {
-        const tree: Tree<GameNodeValue> = new Tree();
-        tree.root = new TreeNode<GameNodeValue>({ evaluation: 0, move: null, validMove: false }, null);
+    public buildGameTree(currentPlayer: Player): Tree<GameNodeValue> {
+        const initialState = this.game.getState();
+        const depth = this.findOptimalDepth(initialState);
 
-        const depth = state.gameState === GameState.INITIAL ? 3 : 4;
-
-        this._minMax(state, depth, currentPlayer, true, tree.root, currentPlayer);
+        const tree = new Tree<GameNodeValue>({ evaluation: 0, movesToValidState: null });
+        this.minMax(initialState, currentPlayer, currentPlayer, depth, tree.root);
+        this.game.resetState(initialState);
         return tree;
     }
 
-    private _minMax(
+    private minMax(
         state: NineMensMorrisState,
-        depth: number,
         currentPlayer: Player,
-        isMaximizingPlayer: boolean,
+        maximizingPlayer: Player,
+        depth: number,
         parentNode: TreeNode<GameNodeValue>,
-        initialPlayer: Player,
     ): number {
         this.game.resetState(state);
 
@@ -34,63 +35,87 @@ export class MinMaxAlgorithm {
             return this.heuristic.calculateBoard(state, Player.PLAYER_2);
         }
 
-        const doComputerMove = (initEval, nextEval): number => {
-            let bestEval = initEval;
+        const _minOrMax = (initialEvaluation: number, betterEvaluation: BetterEvaluation): number => {
+            let bestEvaluation = initialEvaluation;
 
-            this.game.findSelectableCoordinates().forEach((coord: Coordinate) => {
+            this.buildNodesToSearch(parentNode).forEach((node: TreeNode<GameNodeValue>) => {
                 this.game.resetState(state);
-                const result = this.game.tryToMakeMove(coord);
 
-                const newNode = new TreeNode<GameNodeValue>(
-                    { evaluation: null, move: coord, nextMoves: [], validMove: true },
-                    parentNode,
-                );
+                node.value.movesToValidState.forEach(coord => {
+                    this.game.tryToMakeMove(coord);
+                });
 
-                if (result === GameMoveResult.MILL) {
-                    const millCoord = this.game.findSelectableCoordinates(coord)[0];
-                    this.game.tryToMakeMove(millCoord);
-                    newNode.value.nextMoves.push(millCoord);
-                }
-
-                if (result === GameMoveResult.FIRST_MOVE_PART) {
-                    const nextMove = this.game.findSelectableCoordinates(coord)[0];
-                    if (!nextMove) {
-                        newNode.value.validMove = false;
-                        this.game.resetState(state);
-                    } else {
-                        const nextMoveResult = this.game.tryToMakeMove(nextMove);
-                        newNode.value.nextMoves.push(nextMove);
-                        if (nextMoveResult === GameMoveResult.MILL) {
-                            const millCoord = this.game.findSelectableCoordinates(coord)[0];
-                            this.game.tryToMakeMove(millCoord);
-                            newNode.value.nextMoves.push(millCoord);
-                        }
-                    }
-                }
-
-                parentNode.addChild(newNode);
-                const updatedState = this.game.getState();
-
-                const evaluation = this._minMax(
-                    updatedState,
-                    depth - 1,
+                const evaluation = this.minMax(
+                    this.game.getState(),
                     nextPlayer(currentPlayer),
-                    !isMaximizingPlayer,
-                    newNode,
-                    initialPlayer,
+                    maximizingPlayer,
+                    depth - 1,
+                    node,
                 );
 
-                newNode.value.evaluation = evaluation;
-                bestEval = nextEval(bestEval, evaluation);
+                node.value.evaluation = evaluation;
+                bestEvaluation = betterEvaluation(bestEvaluation, evaluation);
             });
 
-            return bestEval;
+            return bestEvaluation;
         };
 
-        if (isMaximizingPlayer) {
-            return doComputerMove(-Infinity, Math.max);
+        if (currentPlayer === maximizingPlayer) {
+            return _minOrMax(-Infinity, Math.max);
         } else {
-            return doComputerMove(Infinity, Math.min);
+            return _minOrMax(Infinity, Math.min);
         }
+    }
+
+    private buildNodesToSearch(parentNode: TreeNode<GameNodeValue>): TreeNode<GameNodeValue>[] {
+        const state = this.game.getState();
+        const nodesToSearch: TreeNode<GameNodeValue>[] = [];
+
+        const addToSearch = (movesToValidState: Coordinate[]) => {
+            nodesToSearch.push(new TreeNode({ movesToValidState, evaluation: null }, parentNode));
+        };
+
+        this.game.findSelectableCoordinates().forEach(coord => {
+            this.game.resetState(state);
+            const result = this.game.tryToMakeMove(coord);
+
+            if (result === GameMoveResult.MILL) {
+                this.game.findSelectableCoordinates(coord).forEach(millCoord => {
+                    addToSearch([coord, millCoord]);
+                });
+            } else if (result === GameMoveResult.FIRST_MOVE_PART) {
+                const coordinatesForFinalMove = this.game.findSelectableCoordinates(coord);
+                const stateAfterFirstMove = this.game.getState();
+
+                coordinatesForFinalMove.forEach(finalMoveCoordinate => {
+                    this.game.resetState(stateAfterFirstMove);
+                    const finalMoveResult = this.game.tryToMakeMove(finalMoveCoordinate);
+
+                    if (finalMoveResult === GameMoveResult.MILL) {
+                        this.game.findSelectableCoordinates(finalMoveCoordinate).forEach(millCoord => {
+                            addToSearch([coord, finalMoveCoordinate, millCoord]);
+                        });
+                    } else {
+                        addToSearch([coord, finalMoveCoordinate]);
+                    }
+                });
+            } else {
+                addToSearch([coord]);
+            }
+        });
+
+        this.game.resetState(state);
+        parentNode.setChildren(nodesToSearch);
+        return nodesToSearch;
+    }
+
+    private findOptimalDepth(state: NineMensMorrisState): number {
+        if (state.gameState === GameState.INITIAL) {
+            return 3;
+        }
+        if (this.game.isFlyingActive()) {
+            return 3;
+        }
+        return 4;
     }
 }

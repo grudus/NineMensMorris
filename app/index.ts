@@ -1,4 +1,4 @@
-import { NineMensMorrisGame, NineMensMorrisState } from './game/NineMensMorrisGame';
+import { NineMensMorrisGame } from './game/NineMensMorrisGame';
 import { GameDrawer } from './paint/GameDrawer';
 import { GameInfoWriter } from './paint/GameInfoWriter';
 import { MovesHistory } from './game/MovesHistory';
@@ -9,26 +9,26 @@ import { Player } from './game/Player';
 import { GameMoveResult, NEXT_PLAYER_RESULTS } from './game/GameMoveResult';
 import { Coordinate } from './game/Coordinate';
 
-function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, state: NineMensMorrisState, game: NineMensMorrisGame) {
-    const tree = minMaxAlgorithm.minMax(state, Player.PLAYER_2);
+function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, game: NineMensMorrisGame) {
+    const tree = minMaxAlgorithm.buildGameTree(Player.PLAYER_2);
 
-    const bestMove = tree.root
+    console.log(tree.root.getChildren());
+
+    const bestEvaluation = tree.root
+        .getChildren()
+        .map(node => node.value.evaluation)
+        .reduce((acc, cur) => (acc >= cur ? acc : cur));
+
+    const bestMoves = tree.root
         .getChildren()
         .map(node => node.value)
-        .filter(value => value.validMove)
-        .reduce((acc, cur) => (acc.evaluation >= cur.evaluation ? acc : cur));
+        .filter(a => a.evaluation === bestEvaluation);
 
-    const possibleMoves = tree.root
-        .getChildren()
-        .map(node => node.value)
-        .filter(value => value.validMove)
-        .filter(a => a.evaluation === bestMove.evaluation)
-        .filter(a => a && a.move);
-    const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+    const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
-    game.resetState(state);
-    game.tryToMakeMove(move.move);
-    move.nextMoves.forEach((a: Coordinate) => {
+    console.log(move);
+
+    move.movesToValidState.forEach((a: Coordinate) => {
         game.tryToMakeMove(a);
     });
 }
@@ -44,11 +44,10 @@ function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, state: NineMensMorri
     const minMaxAlgorithm = new MinMaxAlgorithm(new PlayerRemainingPointsHeuristic(), game);
 
     const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
-        const state = game.getState();
         infoWriter.update();
         if (NEXT_PLAYER_RESULTS.includes(result)) {
             setTimeout(() => {
-                makeComputerMove(minMaxAlgorithm, state, game);
+                makeComputerMove(minMaxAlgorithm, game);
                 infoWriter.update();
                 redrawFunc();
             }, 10);
