@@ -3,13 +3,14 @@ import { GameDrawer } from './paint/GameDrawer';
 import { GameInfoWriter } from './paint/GameInfoWriter';
 import { MovesHistory } from './game/MovesHistory';
 import { BoardService } from './game/BoardService';
-import { MinMaxAlgorithm } from './ai/MinMaxAlgorithm';
 import { PlayerRemainingPointsHeuristic } from './ai/heuristics/PlayerRemainingPointsHeuristic';
 import { Player } from './game/Player';
 import { GameMoveResult, NEXT_PLAYER_RESULTS } from './game/GameMoveResult';
 import { Coordinate } from './game/Coordinate';
+import { AlphaBetaAlgorithm } from './ai/AlphaBetaAlgorithm';
+import { GameAlgorithm } from './ai/GameAlgorithm';
 
-function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, game: NineMensMorrisGame) {
+function makeComputerMove(minMaxAlgorithm: GameAlgorithm, game: NineMensMorrisGame) {
     const tree = minMaxAlgorithm.buildGameTree(Player.PLAYER_2);
 
     console.log(tree.root.getChildren());
@@ -41,7 +42,7 @@ function makeComputerMove(minMaxAlgorithm: MinMaxAlgorithm, game: NineMensMorris
 
     const infoWriter = new GameInfoWriter(game);
 
-    const minMaxAlgorithm = new MinMaxAlgorithm(new PlayerRemainingPointsHeuristic(), game);
+    const minMaxAlgorithm = new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game);
 
     const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
         infoWriter.update();

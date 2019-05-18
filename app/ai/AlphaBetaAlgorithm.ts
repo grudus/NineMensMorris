@@ -9,24 +9,28 @@ import { GameAlgorithm } from './GameAlgorithm';
 import { buildNodesToSearch } from './NodeBuilder';
 
 type BetterEvaluation = (a: number, b: number) => number;
+type BetterAlpha = (alpha: number, evaluation: number) => number;
+type BetterBeta = (beta: number, evaluation: number) => number;
 
-export class MinMaxAlgorithm implements GameAlgorithm {
+export class AlphaBetaAlgorithm implements GameAlgorithm {
     public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame) {}
 
-    public buildGameTree(currentPlayer: Player): Tree<GameNodeValue> {
+    public buildGameTree(maximizingPlayer: Player): Tree<GameNodeValue> {
         const initialState = this.game.getState();
         const depth = this.findOptimalDepth(initialState);
 
         const tree = new Tree<GameNodeValue>({ evaluation: 0, movesToValidState: null });
-        this.minMax(initialState, currentPlayer, currentPlayer, depth, tree.root);
+        this.alphaBeta(initialState, maximizingPlayer, maximizingPlayer, -Infinity, Infinity, depth, tree.root);
         this.game.resetState(initialState);
         return tree;
     }
 
-    private minMax(
+    private alphaBeta(
         state: GameState,
         currentPlayer: Player,
         maximizingPlayer: Player,
+        alpha: number,
+        beta: number,
         depth: number,
         parentNode: TreeNode<GameNodeValue>,
     ): number {
@@ -36,35 +40,50 @@ export class MinMaxAlgorithm implements GameAlgorithm {
             return this.heuristic.calculateBoard(state, Player.PLAYER_2);
         }
 
-        const _minOrMax = (initialEvaluation: number, betterEvaluation: BetterEvaluation): number => {
+        const _alphaOrBeta = (
+            initialEvaluation: number,
+            betterEvaluation: BetterEvaluation,
+            nextAlpha: BetterAlpha,
+            nextBeta: BetterBeta,
+        ): number => {
             let bestEvaluation = initialEvaluation;
 
-            buildNodesToSearch(this.game, parentNode).forEach((node: TreeNode<GameNodeValue>) => {
+            const nodesToSearch = buildNodesToSearch(this.game, parentNode);
+
+            for (const node of nodesToSearch) {
                 this.game.resetState(state);
 
                 node.value.movesToValidState.forEach(coord => {
                     this.game.tryToMakeMove(coord);
                 });
 
-                const evaluation = this.minMax(
+                const evaluation = this.alphaBeta(
                     this.game.getState(),
                     nextPlayer(currentPlayer),
                     maximizingPlayer,
+                    alpha,
+                    beta,
                     depth - 1,
                     node,
                 );
 
                 node.value.evaluation = evaluation;
                 bestEvaluation = betterEvaluation(bestEvaluation, evaluation);
-            });
+                alpha = nextAlpha(alpha, evaluation);
+                beta = nextBeta(beta, evaluation);
+
+                if (beta <= alpha) {
+                    break;
+                }
+            }
 
             return bestEvaluation;
         };
 
         if (currentPlayer === maximizingPlayer) {
-            return _minOrMax(-Infinity, Math.max);
+            return _alphaOrBeta(-Infinity, Math.max, Math.max, _beta => _beta);
         } else {
-            return _minOrMax(Infinity, Math.min);
+            return _alphaOrBeta(Infinity, Math.min, _alpha => _alpha, Math.max);
         }
     }
 
