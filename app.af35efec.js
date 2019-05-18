@@ -588,6 +588,13 @@ function () {
       return this.boardService.findNeighbours(coordinate);
     }
   }, {
+    key: "isFlyingActive",
+    value: function isFlyingActive() {
+      return Object.values(this.state.playerPoints).some(function (points) {
+        return points === POINTS_TO_ENABLE_FLYING;
+      });
+    }
+  }, {
     key: "setState",
     value: function setState(state) {
       if (this.isGameOver()) return;
@@ -1237,21 +1244,15 @@ exports.BoardService = BoardService;
 },{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
 "use strict";
 
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var Tree = function Tree() {
-  _classCallCheck(this, Tree);
-};
-
-exports.Tree = Tree;
 
 var TreeNode =
 /*#__PURE__*/
@@ -1275,12 +1276,25 @@ function () {
     value: function getChildren() {
       return this.children;
     }
+  }, {
+    key: "setChildren",
+    value: function setChildren(children) {
+      this.children = children;
+    }
   }]);
 
   return TreeNode;
 }();
 
 exports.TreeNode = TreeNode;
+
+var Tree = function Tree(root) {
+  _classCallCheck(this, Tree);
+
+  this.root = new TreeNode(root, null);
+};
+
+exports.Tree = Tree;
 },{}],"app/ai/MinMaxAlgorithm.ts":[function(require,module,exports) {
 "use strict";
 
@@ -1313,23 +1327,21 @@ function () {
   }
 
   _createClass(MinMaxAlgorithm, [{
-    key: "minMax",
-    value: function minMax(state, currentPlayer) {
-      var tree = new Tree_1.Tree();
-      tree.root = new Tree_1.TreeNode({
+    key: "buildGameTree",
+    value: function buildGameTree(currentPlayer) {
+      var initialState = this.game.getState();
+      var depth = this.findOptimalDepth(initialState);
+      var tree = new Tree_1.Tree({
         evaluation: 0,
-        move: null,
-        validMove: false
-      }, null);
-      var depth = state.gameState === GameState_1.GameState.INITIAL ? 3 : 4;
-
-      this._minMax(state, depth, currentPlayer, true, tree.root, currentPlayer);
-
+        movesToValidState: null
+      });
+      this.minMax(initialState, currentPlayer, currentPlayer, depth, tree.root);
+      this.game.resetState(initialState);
       return tree;
     }
   }, {
-    key: "_minMax",
-    value: function _minMax(state, depth, currentPlayer, isMaximizingPlayer, parentNode, initialPlayer) {
+    key: "minMax",
+    value: function minMax(state, currentPlayer, maximizingPlayer, depth, parentNode) {
       var _this = this;
 
       this.game.resetState(state);
@@ -1338,69 +1350,93 @@ function () {
         return this.heuristic.calculateBoard(state, Player_1.Player.PLAYER_2);
       }
 
-      var doComputerMove = function doComputerMove(initEval, nextEval) {
-        var bestEval = initEval;
+      var _minOrMax = function _minOrMax(initialEvaluation, betterEvaluation) {
+        var bestEvaluation = initialEvaluation;
 
-        _this.game.findSelectableCoordinates().forEach(function (coord) {
+        _this.buildNodesToSearch(parentNode).forEach(function (node) {
           _this.game.resetState(state);
 
-          var result = _this.game.tryToMakeMove(coord);
+          node.value.movesToValidState.forEach(function (coord) {
+            _this.game.tryToMakeMove(coord);
+          });
 
-          var newNode = new Tree_1.TreeNode({
-            evaluation: null,
-            move: coord,
-            nextMoves: [],
-            validMove: true
-          }, parentNode);
+          var evaluation = _this.minMax(_this.game.getState(), Player_1.nextPlayer(currentPlayer), maximizingPlayer, depth - 1, node);
 
-          if (result === GameMoveResult_1.GameMoveResult.MILL) {
-            var millCoord = _this.game.findSelectableCoordinates(coord)[0];
-
-            _this.game.tryToMakeMove(millCoord);
-
-            newNode.value.nextMoves.push(millCoord);
-          }
-
-          if (result === GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART) {
-            var nextMove = _this.game.findSelectableCoordinates(coord)[0];
-
-            if (!nextMove) {
-              newNode.value.validMove = false;
-
-              _this.game.resetState(state);
-            } else {
-              var nextMoveResult = _this.game.tryToMakeMove(nextMove);
-
-              newNode.value.nextMoves.push(nextMove);
-
-              if (nextMoveResult === GameMoveResult_1.GameMoveResult.MILL) {
-                var _millCoord = _this.game.findSelectableCoordinates(coord)[0];
-
-                _this.game.tryToMakeMove(_millCoord);
-
-                newNode.value.nextMoves.push(_millCoord);
-              }
-            }
-          }
-
-          parentNode.addChild(newNode);
-
-          var updatedState = _this.game.getState();
-
-          var evaluation = _this._minMax(updatedState, depth - 1, Player_1.nextPlayer(currentPlayer), !isMaximizingPlayer, newNode, initialPlayer);
-
-          newNode.value.evaluation = evaluation;
-          bestEval = nextEval(bestEval, evaluation);
+          node.value.evaluation = evaluation;
+          bestEvaluation = betterEvaluation(bestEvaluation, evaluation);
         });
 
-        return bestEval;
+        return bestEvaluation;
       };
 
-      if (isMaximizingPlayer) {
-        return doComputerMove(-Infinity, Math.max);
+      if (currentPlayer === maximizingPlayer) {
+        return _minOrMax(-Infinity, Math.max);
       } else {
-        return doComputerMove(Infinity, Math.min);
+        return _minOrMax(Infinity, Math.min);
       }
+    }
+  }, {
+    key: "buildNodesToSearch",
+    value: function buildNodesToSearch(parentNode) {
+      var _this2 = this;
+
+      var state = this.game.getState();
+      var nodesToSearch = [];
+
+      var addToSearch = function addToSearch(movesToValidState) {
+        nodesToSearch.push(new Tree_1.TreeNode({
+          movesToValidState: movesToValidState,
+          evaluation: null
+        }, parentNode));
+      };
+
+      this.game.findSelectableCoordinates().forEach(function (coord) {
+        _this2.game.resetState(state);
+
+        var result = _this2.game.tryToMakeMove(coord);
+
+        if (result === GameMoveResult_1.GameMoveResult.MILL) {
+          _this2.game.findSelectableCoordinates(coord).forEach(function (millCoord) {
+            addToSearch([coord, millCoord]);
+          });
+        } else if (result === GameMoveResult_1.GameMoveResult.FIRST_MOVE_PART) {
+          var coordinatesForFinalMove = _this2.game.findSelectableCoordinates(coord);
+
+          var stateAfterFirstMove = _this2.game.getState();
+
+          coordinatesForFinalMove.forEach(function (finalMoveCoordinate) {
+            _this2.game.resetState(stateAfterFirstMove);
+
+            var finalMoveResult = _this2.game.tryToMakeMove(finalMoveCoordinate);
+
+            if (finalMoveResult === GameMoveResult_1.GameMoveResult.MILL) {
+              _this2.game.findSelectableCoordinates(finalMoveCoordinate).forEach(function (millCoord) {
+                addToSearch([coord, finalMoveCoordinate, millCoord]);
+              });
+            } else {
+              addToSearch([coord, finalMoveCoordinate]);
+            }
+          });
+        } else {
+          addToSearch([coord]);
+        }
+      });
+      this.game.resetState(state);
+      parentNode.setChildren(nodesToSearch);
+      return nodesToSearch;
+    }
+  }, {
+    key: "findOptimalDepth",
+    value: function findOptimalDepth(state) {
+      if (state.gameState === GameState_1.GameState.INITIAL) {
+        return 3;
+      }
+
+      if (this.game.isFlyingActive()) {
+        return 3;
+      }
+
+      return 4;
     }
   }]);
 
@@ -1466,28 +1502,22 @@ var Player_1 = require("./game/Player");
 
 var GameMoveResult_1 = require("./game/GameMoveResult");
 
-function makeComputerMove(minMaxAlgorithm, state, game) {
-  var tree = minMaxAlgorithm.minMax(state, Player_1.Player.PLAYER_2);
-  var bestMove = tree.root.getChildren().map(function (node) {
-    return node.value;
-  }).filter(function (value) {
-    return value.validMove;
+function makeComputerMove(minMaxAlgorithm, game) {
+  var tree = minMaxAlgorithm.buildGameTree(Player_1.Player.PLAYER_2);
+  console.log(tree.root.getChildren());
+  var bestEvaluation = tree.root.getChildren().map(function (node) {
+    return node.value.evaluation;
   }).reduce(function (acc, cur) {
-    return acc.evaluation >= cur.evaluation ? acc : cur;
+    return acc >= cur ? acc : cur;
   });
-  var possibleMoves = tree.root.getChildren().map(function (node) {
+  var bestMoves = tree.root.getChildren().map(function (node) {
     return node.value;
-  }).filter(function (value) {
-    return value.validMove;
   }).filter(function (a) {
-    return a.evaluation === bestMove.evaluation;
-  }).filter(function (a) {
-    return a && a.move;
+    return a.evaluation === bestEvaluation;
   });
-  var move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-  game.resetState(state);
-  game.tryToMakeMove(move.move);
-  move.nextMoves.forEach(function (a) {
+  var move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+  console.log(move);
+  move.movesToValidState.forEach(function (a) {
     game.tryToMakeMove(a);
   });
 }
@@ -1499,12 +1529,11 @@ function makeComputerMove(minMaxAlgorithm, state, game) {
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
   var minMaxAlgorithm = new MinMaxAlgorithm_1.MinMaxAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
   var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
-    var state = game.getState();
     infoWriter.update();
 
     if (GameMoveResult_1.NEXT_PLAYER_RESULTS.includes(result)) {
       setTimeout(function () {
-        makeComputerMove(minMaxAlgorithm, state, game);
+        makeComputerMove(minMaxAlgorithm, game);
         infoWriter.update();
         redrawFunc();
       }, 10);
@@ -1540,7 +1569,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62718" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51100" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
