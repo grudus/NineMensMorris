@@ -437,7 +437,8 @@ function () {
         board: InitialGameHelper.initBoard(),
         history: [],
         destroyedOpponents: (_destroyedOpponents = {}, _defineProperty(_destroyedOpponents, Player_1.Player.PLAYER_1, 0), _defineProperty(_destroyedOpponents, Player_1.Player.PLAYER_2, 0), _destroyedOpponents),
-        currentMove: null
+        currentMove: null,
+        winner: null
       };
       this.state = this.clone(newState);
       this.boardService.resetBoard(this.state.board);
@@ -608,7 +609,14 @@ function () {
           return this.boardService.findPlayerCoordinates(Player_1.Player.NO_PLAYER);
 
         case GamePhase_1.GamePhase.SELECT_POINT_TO_MOVE:
-          return this.boardService.findPlayerCoordinates(this.currentPlayer);
+          var selectable = this.boardService.findPlayerCoordinates(this.currentPlayer);
+
+          if (!selectable.length) {
+            this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
+            this.state.winner = Player_1.nextPlayer(this.currentPlayer);
+          }
+
+          return selectable;
 
         case GamePhase_1.GamePhase.MILL:
           return this.allOpponentPositions();
@@ -628,9 +636,9 @@ function () {
       this.state.destroyedOpponents[this.currentPlayer]++;
       this.boardService.setPlayer(point, Player_1.Player.NO_PLAYER);
 
-      if (Object.values(this.state.playerPoints).some(function (points) {
-        return points === POINTS_TO_GAME_OVER;
-      })) {
+      if (!this.state.initialHandQueue.length && this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
+        console.log('GAME OVER');
+        this.state.winner = Player_1.nextPlayer(playerToRemove);
         this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
       }
     }
@@ -1176,7 +1184,12 @@ function () {
   }, {
     key: "playerAt",
     value: function playerAt(coordinate) {
-      return this.board.get(Coordinate_1.hash(coordinate));
+      return this.playerAtHash(Coordinate_1.hash(coordinate));
+    }
+  }, {
+    key: "playerAtHash",
+    value: function playerAtHash(hash) {
+      return this.board.get(hash);
     }
   }, {
     key: "setPlayer",
@@ -1240,40 +1253,7 @@ function () {
 }();
 
 exports.BoardService = BoardService;
-},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Player_1 = require("../../game/Player");
-
-var PlayerRemainingPointsHeuristic =
-/*#__PURE__*/
-function () {
-  function PlayerRemainingPointsHeuristic() {
-    _classCallCheck(this, PlayerRemainingPointsHeuristic);
-  }
-
-  _createClass(PlayerRemainingPointsHeuristic, [{
-    key: "calculateBoard",
-    value: function calculateBoard(state, player) {
-      return state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)];
-    }
-  }]);
-
-  return PlayerRemainingPointsHeuristic;
-}();
-
-exports.PlayerRemainingPointsHeuristic = PlayerRemainingPointsHeuristic;
-},{"../../game/Player":"app/game/Player.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
+},{"./InitialGameHelper":"app/game/InitialGameHelper.ts","./Coordinate":"app/game/Coordinate.ts"}],"app/tree/Tree.ts":[function(require,module,exports) {
 "use strict";
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1512,7 +1492,119 @@ function () {
 }();
 
 exports.AlphaBetaAlgorithm = AlphaBetaAlgorithm;
-},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GamePhase":"app/game/GamePhase.ts","./NodeBuilder":"app/ai/NodeBuilder.ts"}],"app/index.ts":[function(require,module,exports) {
+},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GamePhase":"app/game/GamePhase.ts","./NodeBuilder":"app/ai/NodeBuilder.ts"}],"app/ai/heuristics/MillInNextMoveHeuristic.ts":[function(require,module,exports) {
+"use strict";
+
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+
+function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Player_1 = require("../../game/Player");
+
+var GamePhase_1 = require("../../game/GamePhase");
+
+var MillInNextMoveHeuristic =
+/*#__PURE__*/
+function () {
+  function MillInNextMoveHeuristic(boardService) {
+    var millPointsFactor = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 3;
+
+    _classCallCheck(this, MillInNextMoveHeuristic);
+
+    this.boardService = boardService;
+    this.millPointsFactor = millPointsFactor;
+  }
+
+  _createClass(MillInNextMoveHeuristic, [{
+    key: "calculateBoard",
+    value: function calculateBoard(state, player) {
+      var _this = this;
+
+      if (state.gamePhase === GamePhase_1.GamePhase.GAME_OVER) {
+        return state.winner === player ? 10000 : -10000;
+      }
+
+      var opponentPlayer = Player_1.nextPlayer(player);
+      var millPoints = this.millPointsFactor * (state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)]);
+
+      var millCheckPositions = _toConsumableArray(this.boardService.millCheckPositions.entries());
+
+      var additionalPoints = 0;
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = millCheckPositions[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var _ref;
+
+          var _step$value = _slicedToArray(_step.value, 2),
+              coordinateHash = _step$value[0],
+              millCheckCoords = _step$value[1];
+
+          var _player = this.boardService.playerAtHash(coordinateHash);
+
+          if (_player !== Player_1.Player.NO_PLAYER) continue;
+
+          var millCheckPlayers = (_ref = []).concat.apply(_ref, _toConsumableArray(millCheckCoords)).map(function (_c) {
+            return _this.boardService.playerAt(_c);
+          });
+
+          var mensPerPlayer = [_player].concat(_toConsumableArray(millCheckPlayers)).reduce(function (acc, curr) {
+            acc[curr] = acc[curr] ? acc[curr] + 1 : 1;
+            return acc;
+          }, {});
+
+          if (mensPerPlayer[Player_1.Player.NO_PLAYER] === 2) {
+            if (mensPerPlayer[_player] === 3) additionalPoints++;else if (mensPerPlayer[opponentPlayer] === 3) additionalPoints--;
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return != null) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      return millPoints + additionalPoints;
+    }
+  }]);
+
+  return MillInNextMoveHeuristic;
+}();
+
+exports.MillInNextMoveHeuristic = MillInNextMoveHeuristic;
+},{"../../game/Player":"app/game/Player.ts","../../game/GamePhase":"app/game/GamePhase.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1529,16 +1621,16 @@ var MovesHistory_1 = require("./game/MovesHistory");
 
 var BoardService_1 = require("./game/BoardService");
 
-var PlayerRemainingPointsHeuristic_1 = require("./ai/heuristics/PlayerRemainingPointsHeuristic");
-
 var Player_1 = require("./game/Player");
 
 var GameMoveResult_1 = require("./game/GameMoveResult");
 
 var AlphaBetaAlgorithm_1 = require("./ai/AlphaBetaAlgorithm");
 
-function makeComputerMove(minMaxAlgorithm, game) {
-  var tree = minMaxAlgorithm.buildGameTree(Player_1.Player.PLAYER_2);
+var MillInNextMoveHeuristic_1 = require("./ai/heuristics/MillInNextMoveHeuristic");
+
+function makeComputerMove(algorithm, game) {
+  var tree = algorithm.buildGameTree(Player_1.Player.PLAYER_2);
   console.log(tree.root.getChildren());
   var bestEvaluation = tree.root.getChildren().map(function (node) {
     return node.value.evaluation;
@@ -1559,10 +1651,11 @@ function makeComputerMove(minMaxAlgorithm, game) {
 
 (function () {
   console.log("HELLO IN THE NINE MEN'S MORRIS GAME");
-  var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), new BoardService_1.BoardService());
+  var boardService = new BoardService_1.BoardService();
+  var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), boardService);
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
-  var minMaxAlgorithm = new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
+  var minMaxAlgorithm = new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new MillInNextMoveHeuristic_1.MillInNextMoveHeuristic(boardService), game);
   var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
     infoWriter.update();
 
@@ -1576,7 +1669,7 @@ function makeComputerMove(minMaxAlgorithm, game) {
   });
   infoWriter.update();
 })();
-},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./ai/heuristics/PlayerRemainingPointsHeuristic":"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts","./ai/AlphaBetaAlgorithm":"app/ai/AlphaBetaAlgorithm.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts","./ai/AlphaBetaAlgorithm":"app/ai/AlphaBetaAlgorithm.ts","./ai/heuristics/MillInNextMoveHeuristic":"app/ai/heuristics/MillInNextMoveHeuristic.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1604,7 +1697,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49972" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62372" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
