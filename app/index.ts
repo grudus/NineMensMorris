@@ -8,7 +8,7 @@ import { GameMoveResult, NEXT_PLAYER_RESULTS } from './game/GameMoveResult';
 import { Coordinate } from './game/Coordinate';
 import { AlphaBetaAlgorithm } from './ai/AlphaBetaAlgorithm';
 import { GameAlgorithm } from './ai/GameAlgorithm';
-import { AlmostMillHeuristic } from './ai/heuristics/AlmostMillHeuristic';
+import { MillInNextMoveHeuristic } from './ai/heuristics/MillInNextMoveHeuristic';
 
 function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
     const tree = algorithm.buildGameTree(Player.PLAYER_2);
@@ -43,7 +43,7 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
 
     const infoWriter = new GameInfoWriter(game);
 
-    const minMaxAlgorithm = new AlphaBetaAlgorithm(new AlmostMillHeuristic(boardService), game);
+    const minMaxAlgorithm = new AlphaBetaAlgorithm(new MillInNextMoveHeuristic(boardService), game);
 
     const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
         infoWriter.update();

@@ -175,7 +175,12 @@ export class NineMensMorrisGame {
             case GamePhase.INITIAL:
                 return this.boardService.findPlayerCoordinates(Player.NO_PLAYER);
             case GamePhase.SELECT_POINT_TO_MOVE:
-                return this.boardService.findPlayerCoordinates(this.currentPlayer);
+                const selectable = this.boardService.findPlayerCoordinates(this.currentPlayer);
+                if (!selectable.length) {
+                    this.setPhase(GamePhase.GAME_OVER);
+                    this.state.winner = nextPlayer(this.currentPlayer);
+                }
+                return selectable;
             case GamePhase.MILL:
                 return this.allOpponentPositions();
             case GamePhase.MOVE_SELECTED_POINT:
@@ -191,7 +196,7 @@ export class NineMensMorrisGame {
         this.state.destroyedOpponents[this.currentPlayer]++;
         this.boardService.setPlayer(point, Player.NO_PLAYER);
 
-        if (this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
+        if (!this.state.initialHandQueue.length && this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
             console.log('GAME OVER');
             this.state.winner = nextPlayer(playerToRemove);
             this.setPhase(GamePhase.GAME_OVER);
