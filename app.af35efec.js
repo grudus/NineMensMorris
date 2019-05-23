@@ -612,8 +612,7 @@ function () {
           var selectable = this.boardService.findPlayerCoordinates(this.currentPlayer);
 
           if (!selectable.length) {
-            this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
-            this.state.winner = Player_1.nextPlayer(this.currentPlayer);
+            this.setGameOver(Player_1.nextPlayer(this.currentPlayer));
           }
 
           return selectable;
@@ -637,9 +636,7 @@ function () {
       this.boardService.setPlayer(point, Player_1.Player.NO_PLAYER);
 
       if (!this.state.initialHandQueue.length && this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
-        console.log('GAME OVER');
-        this.state.winner = Player_1.nextPlayer(playerToRemove);
-        this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
+        this.setGameOver(this.currentPlayer);
       }
     }
   }, {
@@ -647,6 +644,12 @@ function () {
     value: function clearMill() {
       this.setPhase(this.state.prevPhase);
       this.state.millPlayer = null;
+    }
+  }, {
+    key: "setGameOver",
+    value: function setGameOver(winner) {
+      this.setPhase(GamePhase_1.GamePhase.GAME_OVER);
+      this.state.winner = winner;
     }
   }, {
     key: "currentPhase",
@@ -854,10 +857,10 @@ function () {
       switch (gameMoveResult) {
         case GameMoveResult_1.GameMoveResult.SUCCESSFUL_MOVE:
         case GameMoveResult_1.GameMoveResult.OPPONENT_DESTROYED:
-          this.resetCanvasAndDrawGame();
+          this.redraw();
           setTimeout(function () {
             _this.afterUpdate(gameMoveResult, function () {
-              return _this.resetCanvasAndDrawGame();
+              return _this.redraw();
             });
           });
           break;
@@ -867,12 +870,12 @@ function () {
           break;
 
         case GameMoveResult_1.GameMoveResult.RESTART_MOVE:
-          this.resetCanvasAndDrawGame();
+          this.redraw();
           this.onMouseClick(point);
           break;
 
         case GameMoveResult_1.GameMoveResult.MILL:
-          this.resetCanvasAndDrawGame();
+          this.redraw();
           this.drawPossibleMillMoves();
           break;
 
@@ -934,8 +937,8 @@ function () {
       });
     }
   }, {
-    key: "resetCanvasAndDrawGame",
-    value: function resetCanvasAndDrawGame() {
+    key: "redraw",
+    value: function redraw() {
       this.gameCanvas.clearAll();
       this.drawInitialCanvas();
     }
@@ -1414,7 +1417,7 @@ function () {
       this.game.resetState(state);
 
       if (depth === 0 || this.game.isGameOver()) {
-        return this.heuristic.calculateBoard(state, Player_1.Player.PLAYER_2);
+        return this.heuristic.calculateBoard(state, maximizingPlayer);
       }
 
       var _alphaOrBeta = function _alphaOrBeta(initialEvaluation, betterEvaluation, nextAlpha, nextBeta) {
@@ -1492,7 +1495,7 @@ function () {
 }();
 
 exports.AlphaBetaAlgorithm = AlphaBetaAlgorithm;
-},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GamePhase":"app/game/GamePhase.ts","./NodeBuilder":"app/ai/NodeBuilder.ts"}],"app/ai/heuristics/MillInNextMoveHeuristic.ts":[function(require,module,exports) {
+},{"../game/Player":"app/game/Player.ts","../tree/Tree":"app/tree/Tree.ts","../game/GamePhase":"app/game/GamePhase.ts","./NodeBuilder":"app/ai/NodeBuilder.ts"}],"app/ai/heuristics/AlmostMillHeuristic.ts":[function(require,module,exports) {
 "use strict";
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
@@ -1525,19 +1528,17 @@ var Player_1 = require("../../game/Player");
 
 var GamePhase_1 = require("../../game/GamePhase");
 
-var MillInNextMoveHeuristic =
+var AlmostMillHeuristic =
 /*#__PURE__*/
 function () {
-  function MillInNextMoveHeuristic(boardService) {
-    var millPointsFactor = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 3;
-
-    _classCallCheck(this, MillInNextMoveHeuristic);
+  function AlmostMillHeuristic(boardService) {
+    _classCallCheck(this, AlmostMillHeuristic);
 
     this.boardService = boardService;
-    this.millPointsFactor = millPointsFactor;
+    this.millPointsFactor = 10;
   }
 
-  _createClass(MillInNextMoveHeuristic, [{
+  _createClass(AlmostMillHeuristic, [{
     key: "calculateBoard",
     value: function calculateBoard(state, player) {
       var _this = this;
@@ -1546,39 +1547,55 @@ function () {
         return state.winner === player ? 10000 : -10000;
       }
 
-      var opponentPlayer = Player_1.nextPlayer(player);
       var millPoints = this.millPointsFactor * (state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)]);
+      var almostMillPoints = 0;
 
       var millCheckPositions = _toConsumableArray(this.boardService.millCheckPositions.entries());
 
-      var additionalPoints = 0;
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
 
       try {
         for (var _iterator = millCheckPositions[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var _ref;
-
           var _step$value = _slicedToArray(_step.value, 2),
               coordinateHash = _step$value[0],
               millCheckCoords = _step$value[1];
 
           var _player = this.boardService.playerAtHash(coordinateHash);
 
-          if (_player !== Player_1.Player.NO_PLAYER) continue;
+          if (_player !== Player_1.Player.NO_PLAYER) {
+            continue;
+          }
 
-          var millCheckPlayers = (_ref = []).concat.apply(_ref, _toConsumableArray(millCheckCoords)).map(function (_c) {
-            return _this.boardService.playerAt(_c);
-          });
+          var _iteratorNormalCompletion2 = true;
+          var _didIteratorError2 = false;
+          var _iteratorError2 = undefined;
 
-          var mensPerPlayer = [_player].concat(_toConsumableArray(millCheckPlayers)).reduce(function (acc, curr) {
-            acc[curr] = acc[curr] ? acc[curr] + 1 : 1;
-            return acc;
-          }, {});
+          try {
+            for (var _iterator2 = millCheckCoords[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+              var millCoords = _step2.value;
+              var almostMillPlayer = millCoords.map(function (_c) {
+                return _this.boardService.playerAt(_c);
+              });
 
-          if (mensPerPlayer[Player_1.Player.NO_PLAYER] === 2) {
-            if (mensPerPlayer[_player] === 3) additionalPoints++;else if (mensPerPlayer[opponentPlayer] === 3) additionalPoints--;
+              if (almostMillPlayer[0] === almostMillPlayer[1]) {
+                almostMillPoints += almostMillPlayer[0] === _player ? 1 : -1;
+              }
+            }
+          } catch (err) {
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion2 && _iterator2.return != null) {
+                _iterator2.return();
+              }
+            } finally {
+              if (_didIteratorError2) {
+                throw _iteratorError2;
+              }
+            }
           }
         }
       } catch (err) {
@@ -1596,16 +1613,57 @@ function () {
         }
       }
 
-      return millPoints + additionalPoints;
+      return millPoints + almostMillPoints;
     }
   }]);
 
-  return MillInNextMoveHeuristic;
+  return AlmostMillHeuristic;
 }();
 
-exports.MillInNextMoveHeuristic = MillInNextMoveHeuristic;
+exports.AlmostMillHeuristic = AlmostMillHeuristic;
+},{"../../game/Player":"app/game/Player.ts","../../game/GamePhase":"app/game/GamePhase.ts"}],"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var Player_1 = require("../../game/Player");
+
+var GamePhase_1 = require("../../game/GamePhase");
+
+var PlayerRemainingPointsHeuristic =
+/*#__PURE__*/
+function () {
+  function PlayerRemainingPointsHeuristic() {
+    _classCallCheck(this, PlayerRemainingPointsHeuristic);
+  }
+
+  _createClass(PlayerRemainingPointsHeuristic, [{
+    key: "calculateBoard",
+    value: function calculateBoard(state, player) {
+      if (state.gamePhase === GamePhase_1.GamePhase.GAME_OVER) {
+        return state.winner === player ? 10000 : -10000;
+      }
+
+      return state.destroyedOpponents[player] - state.destroyedOpponents[Player_1.nextPlayer(player)];
+    }
+  }]);
+
+  return PlayerRemainingPointsHeuristic;
+}();
+
+exports.PlayerRemainingPointsHeuristic = PlayerRemainingPointsHeuristic;
 },{"../../game/Player":"app/game/Player.ts","../../game/GamePhase":"app/game/GamePhase.ts"}],"app/index.ts":[function(require,module,exports) {
 "use strict";
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1627,11 +1685,19 @@ var GameMoveResult_1 = require("./game/GameMoveResult");
 
 var AlphaBetaAlgorithm_1 = require("./ai/AlphaBetaAlgorithm");
 
-var MillInNextMoveHeuristic_1 = require("./ai/heuristics/MillInNextMoveHeuristic");
+var AlmostMillHeuristic_1 = require("./ai/heuristics/AlmostMillHeuristic");
 
-function makeComputerMove(algorithm, game) {
-  var tree = algorithm.buildGameTree(Player_1.Player.PLAYER_2);
+var PlayerRemainingPointsHeuristic_1 = require("./ai/heuristics/PlayerRemainingPointsHeuristic");
+
+function makeComputerMove(algorithm, game, player) {
+  var tree = algorithm.buildGameTree(player);
   console.log(tree.root.getChildren());
+
+  if (!tree.root.getChildren().length) {
+    console.log('CANNOT MOVE');
+    return;
+  }
+
   var bestEvaluation = tree.root.getChildren().map(function (node) {
     return node.value.evaluation;
   }).reduce(function (acc, cur) {
@@ -1643,9 +1709,49 @@ function makeComputerMove(algorithm, game) {
     return a.evaluation === bestEvaluation;
   });
   var move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+  console.log("CURRENT PLAYER", player);
   console.log(move);
   move.movesToValidState.forEach(function (a) {
     game.tryToMakeMove(a);
+  });
+}
+
+function aiBattle(boardService, game, infoWriter, drawer) {
+  var _algorithms;
+
+  var algorithms = (_algorithms = {}, _defineProperty(_algorithms, Player_1.Player.PLAYER_1, new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game)), _defineProperty(_algorithms, Player_1.Player.PLAYER_2, new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new AlmostMillHeuristic_1.AlmostMillHeuristic(boardService), game)), _algorithms);
+  var previousPlayerMove = Player_1.Player.NO_PLAYER;
+  var intervalId = setInterval(function () {
+    if (previousPlayerMove === game.currentPlayer) {
+      console.log('return');
+      return;
+    }
+
+    previousPlayerMove = game.currentPlayer;
+    var startTime = new Date();
+    makeComputerMove(algorithms[game.currentPlayer], game, game.currentPlayer);
+    console.log('TIME ELAPSED: ', new Date() - startTime);
+    infoWriter.update();
+    drawer.redraw();
+
+    if (game.isGameOver()) {
+      console.log("GAME OVER!!!!!!!!!");
+      clearInterval(intervalId);
+    }
+  }, 500);
+}
+
+function userComputer(canvas, game, infoWriter, minMaxAlgorithm) {
+  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
+    infoWriter.update();
+
+    if (GameMoveResult_1.NEXT_PLAYER_RESULTS.includes(result)) {
+      setTimeout(function () {
+        makeComputerMove(minMaxAlgorithm, game, Player_1.Player.PLAYER_2);
+        infoWriter.update();
+        redrawFunc();
+      }, 10);
+    }
   });
 }
 
@@ -1655,21 +1761,13 @@ function makeComputerMove(algorithm, game) {
   var game = new NineMensMorrisGame_1.NineMensMorrisGame(new MovesHistory_1.MovesHistory(), boardService);
   var canvas = document.getElementById('game-canvas');
   var infoWriter = new GameInfoWriter_1.GameInfoWriter(game);
-  var minMaxAlgorithm = new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new MillInNextMoveHeuristic_1.MillInNextMoveHeuristic(boardService), game);
-  var drawer = new GameDrawer_1.GameDrawer(canvas, game, function (result, redrawFunc) {
-    infoWriter.update();
+  var minMaxAlgorithm = new AlphaBetaAlgorithm_1.AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic_1.PlayerRemainingPointsHeuristic(), game);
+  userComputer(canvas, game, infoWriter, minMaxAlgorithm); //
+  // aiBattle(boardService, game, infoWriter, new GameDrawer(canvas, game, a => a));
 
-    if (GameMoveResult_1.NEXT_PLAYER_RESULTS.includes(result)) {
-      setTimeout(function () {
-        makeComputerMove(minMaxAlgorithm, game);
-        infoWriter.update();
-        redrawFunc();
-      }, 10);
-    }
-  });
   infoWriter.update();
 })();
-},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts","./ai/AlphaBetaAlgorithm":"app/ai/AlphaBetaAlgorithm.ts","./ai/heuristics/MillInNextMoveHeuristic":"app/ai/heuristics/MillInNextMoveHeuristic.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./game/NineMensMorrisGame":"app/game/NineMensMorrisGame.ts","./paint/GameDrawer":"app/paint/GameDrawer.ts","./paint/GameInfoWriter":"app/paint/GameInfoWriter.ts","./game/MovesHistory":"app/game/MovesHistory.ts","./game/BoardService":"app/game/BoardService.ts","./game/Player":"app/game/Player.ts","./game/GameMoveResult":"app/game/GameMoveResult.ts","./ai/AlphaBetaAlgorithm":"app/ai/AlphaBetaAlgorithm.ts","./ai/heuristics/AlmostMillHeuristic":"app/ai/heuristics/AlmostMillHeuristic.ts","./ai/heuristics/PlayerRemainingPointsHeuristic":"app/ai/heuristics/PlayerRemainingPointsHeuristic.ts"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1697,7 +1795,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62372" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52763" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
