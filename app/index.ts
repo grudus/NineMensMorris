@@ -33,7 +33,7 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, pl
 
     const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
-    console.log("CURRENT PLAYER", player);
+    console.log('CURRENT PLAYER', player);
     console.log(move);
 
     move.movesToValidState.forEach((a: Coordinate) => {
@@ -62,12 +62,13 @@ function aiBattle(
 
         const startTime = new Date();
         makeComputerMove(algorithms[game.currentPlayer], game, game.currentPlayer);
+        // @ts-ignore
         console.log('TIME ELAPSED: ', new Date() - startTime);
         infoWriter.update();
         drawer.redraw();
 
         if (game.isGameOver()) {
-            console.log("GAME OVER!!!!!!!!!");
+            console.log('GAME OVER!!!!!!!!!');
             clearInterval(intervalId);
         }
     }, 500);
@@ -97,9 +98,9 @@ function userComputer(canvas, game, infoWriter, minMaxAlgorithm) {
 
     const minMaxAlgorithm = new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game);
 
-    // userComputer(canvas, game, infoWriter, minMaxAlgorithm);
-
-    aiBattle(boardService, game, infoWriter, new GameDrawer(canvas, game, a => a));
+    userComputer(canvas, game, infoWriter, minMaxAlgorithm);
+    //
+    // aiBattle(boardService, game, infoWriter, new GameDrawer(canvas, game, a => a));
 
     infoWriter.update();
 })();
