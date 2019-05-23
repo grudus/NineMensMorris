@@ -39,6 +39,7 @@ export function buildNodesToSearch(
                     addToSearch([coord, finalMoveCoordinate]);
                 }
             });
+        } else if (result === GameMoveResult.CANNOT_MOVE_DUE_TO_GAME_END) {
         } else {
             addToSearch([coord]);
         }

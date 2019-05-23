@@ -15,7 +15,7 @@ const POINTS_TO_GAME_OVER = 2;
 export class NineMensMorrisGame {
     public static readonly NUMBER_OF_POINTS = 9;
     public static readonly BOARD_SIZE = 7;
-    public static readonly MOVES_WITHOUT_MILL_TO_GAME_OVER = 100;
+    public static readonly MOVES_WITHOUT_MILL_TO_GAME_OVER = 30;
 
     private gameMoveEngine: GameMoveEngine;
     private state: GameState = this.resetState();
@@ -88,16 +88,17 @@ export class NineMensMorrisGame {
 
     public tryToMakeMove(coordinate: Coordinate): GameMoveResult {
         if (this.state.movesWithoutMill > NineMensMorrisGame.MOVES_WITHOUT_MILL_TO_GAME_OVER) {
-            this.setGameOver();
-            return GameMoveResult.CANNOT_MOVE;
+            this.setGameOver(nextPlayer(this.currentPlayer));
+            return GameMoveResult.CANNOT_MOVE_DUE_TO_GAME_END;
         }
-        this.state.movesWithoutMill++;
         return this.gameMoveEngine.makeMove(coordinate);
     }
 
     public movePoint(from: Coordinate, to: Coordinate) {
         const fromPlayer = this.boardService.playerAt(from);
         const toPlayer = this.boardService.playerAt(to);
+
+        this.state.movesWithoutMill++;
 
         if (toPlayer === Player.NO_PLAYER) {
             this.boardService.setPlayer(to, fromPlayer);
@@ -192,6 +193,8 @@ export class NineMensMorrisGame {
                 return this.allOpponentPositions();
             case GamePhase.MOVE_SELECTED_POINT:
                 return this.possibleMoves(coordinate);
+            case GamePhase.GAME_OVER:
+                return [];
             default:
                 return [];
         }
