@@ -14,11 +14,12 @@ import { PlayerRemainingPointsHeuristic } from './ai/heuristics/PlayerRemainingP
 function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, player: Player) {
     const tree = algorithm.buildGameTree(player);
 
-
     if (!tree.root.getChildren().length) {
         console.log('CANNOT MOVE');
         return;
     }
+
+    console.log("WITHOUT MILL", game.getState().movesWithoutMill);
 
     const bestEvaluation = tree.root
         .getChildren()
@@ -33,6 +34,7 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, pl
     const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
     console.log('CURRENT PLAYER', player);
+    console.log(`Moves ${tree.moves}, time: ${tree.time}`);
     console.log(move);
 
     move.movesToValidState.forEach((a: Coordinate) => {
@@ -50,18 +52,16 @@ function aiBattle(
         [Player.PLAYER_1]: new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game),
         [Player.PLAYER_2]: new AlphaBetaAlgorithm(new AlmostMillHeuristic(boardService), game),
     };
-    let previousPlayerMove = Player.NO_PLAYER;
+    // let previousPlayerMove = Player.NO_PLAYER;
 
     const intervalId = setInterval(() => {
-        if (previousPlayerMove === game.currentPlayer) {
-            console.log('return');
-            return;
-        }
-        previousPlayerMove = game.currentPlayer;
+        // if (previousPlayerMove === game.currentPlayer) {
+        //     console.log('return');
+        //     return;
+        // }
+        // previousPlayerMove = game.currentPlayer;
 
-        const startTime = new Date();
         makeComputerMove(algorithms[game.currentPlayer], game, game.currentPlayer);
-        console.log('TIME ELAPSED: ', new Date() - startTime);
         infoWriter.update();
         drawer.redraw();
 

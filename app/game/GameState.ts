@@ -15,4 +15,5 @@ export interface GameState {
     history: Move[];
     currentMove?: CurrentMove;
     winner?: Player;
+    movesWithoutMill: number;
 }

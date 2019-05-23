@@ -13,8 +13,9 @@ const POINTS_TO_ENABLE_FLYING = 3;
 const POINTS_TO_GAME_OVER = 2;
 
 export class NineMensMorrisGame {
-    public static readonly NUMBER_OF_POINTS = 5;
+    public static readonly NUMBER_OF_POINTS = 9;
     public static readonly BOARD_SIZE = 7;
+    public static readonly MOVES_WITHOUT_MILL_TO_GAME_OVER = 100;
 
     private gameMoveEngine: GameMoveEngine;
     private state: GameState = this.resetState();
@@ -30,13 +31,14 @@ export class NineMensMorrisGame {
             millPlayer: null,
             gamePhase: GamePhase.INITIAL,
             prevPhase: GamePhase.INITIAL,
-            playerPoints: {[Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0},
+            playerPoints: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentPlayerMove: Player.PLAYER_1,
             board: InitialGameHelper.initBoard(),
             history: [],
-            destroyedOpponents: {[Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0},
+            destroyedOpponents: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentMove: null,
             winner: null,
+            movesWithoutMill: 0,
         };
         this.state = this.clone(newState);
         this.boardService.resetBoard(this.state.board);
@@ -85,6 +87,11 @@ export class NineMensMorrisGame {
     }
 
     public tryToMakeMove(coordinate: Coordinate): GameMoveResult {
+        if (this.state.movesWithoutMill > NineMensMorrisGame.MOVES_WITHOUT_MILL_TO_GAME_OVER) {
+            this.setGameOver();
+            return GameMoveResult.CANNOT_MOVE;
+        }
+        this.state.movesWithoutMill++;
         return this.gameMoveEngine.makeMove(coordinate);
     }
 
@@ -96,7 +103,7 @@ export class NineMensMorrisGame {
             this.boardService.setPlayer(to, fromPlayer);
             this.boardService.setPlayer(from, Player.NO_PLAYER);
 
-            this.movesHistory.addMove({from, to, player: this.currentPlayer});
+            this.movesHistory.addMove({ from, to, player: this.currentPlayer });
         }
     }
 
@@ -105,6 +112,7 @@ export class NineMensMorrisGame {
         this.state.millPlayer = isMill ? this.currentPlayer : null;
         if (isMill) {
             this.setPhase(GamePhase.MILL);
+            this.state.movesWithoutMill = 0;
         }
         return isMill;
     }

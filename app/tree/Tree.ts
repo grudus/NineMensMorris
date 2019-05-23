@@ -18,6 +18,8 @@ export class TreeNode<T> {
 }
 
 export class Tree<T> {
+    public moves = 0;
+    public time = 0;
     public root?: TreeNode<T>;
 
     public constructor(root: T) {
