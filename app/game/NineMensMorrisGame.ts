@@ -185,7 +185,7 @@ export class NineMensMorrisGame {
             case GamePhase.SELECT_POINT_TO_MOVE:
                 const selectable = this.boardService.findPlayerCoordinates(this.currentPlayer);
                 if (!selectable.length) {
-                    this.setGameOver();
+                    this.setGameOver(nextPlayer(this.currentPlayer));
                 }
                 return selectable;
             case GamePhase.MILL:
@@ -204,7 +204,7 @@ export class NineMensMorrisGame {
         this.boardService.setPlayer(point, Player.NO_PLAYER);
 
         if (!this.state.initialHandQueue.length && this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
-            this.setGameOver();
+            this.setGameOver(this.currentPlayer);
         }
     }
 
@@ -221,8 +221,8 @@ export class NineMensMorrisGame {
         return this.state.currentMove;
     }
 
-    private setGameOver() {
+    private setGameOver(winner: Player) {
         this.setPhase(GamePhase.GAME_OVER);
-        this.state.winner = nextPlayer(this.currentPlayer);
+        this.state.winner = winner;
     }
 }
