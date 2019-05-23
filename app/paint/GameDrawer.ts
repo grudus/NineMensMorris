@@ -28,7 +28,7 @@ export class GameDrawer {
         this.selectablePoints = this.game.findSelectableCoordinates();
     }
 
-    private onMouseClick(point: Coordinate) {
+    public onMouseClick(point: Coordinate) {
         if (!this.humanPlayers.includes(this.game.currentPlayer)) {
             console.log('NOW IS COMPUTER TURN!');
             return;
@@ -38,20 +38,20 @@ export class GameDrawer {
         switch (gameMoveResult) {
             case GameMoveResult.SUCCESSFUL_MOVE:
             case GameMoveResult.OPPONENT_DESTROYED:
-                this.resetCanvasAndDrawGame();
+                this.redraw();
                 setTimeout(() => {
-                    this.afterUpdate(gameMoveResult, () => this.resetCanvasAndDrawGame());
+                    this.afterUpdate(gameMoveResult, () => this.redraw());
                 });
                 break;
             case GameMoveResult.FIRST_MOVE_PART:
                 this.drawPossibleMoves(point);
                 break;
             case GameMoveResult.RESTART_MOVE:
-                this.resetCanvasAndDrawGame();
+                this.redraw();
                 this.onMouseClick(point);
                 break;
             case GameMoveResult.MILL:
-                this.resetCanvasAndDrawGame();
+                this.redraw();
                 this.drawPossibleMillMoves();
                 break;
             case GameMoveResult.CANNOT_MOVE:
@@ -99,7 +99,7 @@ export class GameDrawer {
         });
     }
 
-    private resetCanvasAndDrawGame() {
+    public redraw() {
         this.gameCanvas.clearAll();
         this.drawInitialCanvas();
     }

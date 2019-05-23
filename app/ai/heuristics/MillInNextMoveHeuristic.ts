@@ -6,10 +6,11 @@ import { GamePhase } from '../../game/GamePhase';
 import { Coordinate } from '../../game/Coordinate';
 
 export class MillInNextMoveHeuristic implements GameHeuristic {
-    public constructor(private boardService: BoardService, private millPointsFactor = 3) {}
+    public constructor(private boardService: BoardService, private millPointsFactor = 10) {}
 
     public calculateBoard(state: GameState, player: Player): number {
         if (state.gamePhase === GamePhase.GAME_OVER) {
+            console.log("GAME OVER", state.winner);
             return state.winner === player ? 10_000 : -10_000;
         }
         const opponentPlayer = nextPlayer(player);

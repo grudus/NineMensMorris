@@ -37,7 +37,7 @@ export class AlphaBetaAlgorithm implements GameAlgorithm {
         this.game.resetState(state);
 
         if (depth === 0 || this.game.isGameOver()) {
-            return this.heuristic.calculateBoard(state, Player.PLAYER_2);
+            return this.heuristic.calculateBoard(state, maximizingPlayer);
         }
 
         const _alphaOrBeta = (

@@ -6,7 +6,7 @@ import { Coordinate } from '../../game/Coordinate';
 import { GamePhase } from '../../game/GamePhase';
 
 export class AlmostMillHeuristic implements GameHeuristic {
-    private readonly millPointsFactor = 2;
+    private readonly millPointsFactor = 10;
 
     public constructor(private boardService: BoardService) {}
 

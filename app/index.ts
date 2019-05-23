@@ -8,12 +8,18 @@ import { GameMoveResult, NEXT_PLAYER_RESULTS } from './game/GameMoveResult';
 import { Coordinate } from './game/Coordinate';
 import { AlphaBetaAlgorithm } from './ai/AlphaBetaAlgorithm';
 import { GameAlgorithm } from './ai/GameAlgorithm';
-import { MillInNextMoveHeuristic } from './ai/heuristics/MillInNextMoveHeuristic';
+import { AlmostMillHeuristic } from './ai/heuristics/AlmostMillHeuristic';
+import { PlayerRemainingPointsHeuristic } from './ai/heuristics/PlayerRemainingPointsHeuristic';
 
-function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
-    const tree = algorithm.buildGameTree(Player.PLAYER_2);
+function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, player: Player) {
+    const tree = algorithm.buildGameTree(player);
 
     console.log(tree.root.getChildren());
+
+    if (!tree.root.getChildren().length) {
+        console.log('CANNOT MOVE');
+        return;
+    }
 
     const bestEvaluation = tree.root
         .getChildren()
@@ -27,10 +33,56 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
 
     const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
+    console.log("CURRENT PLAYER", player);
     console.log(move);
 
     move.movesToValidState.forEach((a: Coordinate) => {
         game.tryToMakeMove(a);
+    });
+}
+
+function aiBattle(
+    boardService: BoardService,
+    game: NineMensMorrisGame,
+    infoWriter: GameInfoWriter,
+    drawer: GameDrawer,
+) {
+    const algorithms = {
+        [Player.PLAYER_1]: new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game),
+        [Player.PLAYER_2]: new AlphaBetaAlgorithm(new AlmostMillHeuristic(boardService), game),
+    };
+    let previousPlayerMove = Player.NO_PLAYER;
+
+    const intervalId = setInterval(() => {
+        if (previousPlayerMove === game.currentPlayer) {
+            console.log('return');
+            return;
+        }
+        previousPlayerMove = game.currentPlayer;
+
+        const startTime = new Date();
+        makeComputerMove(algorithms[game.currentPlayer], game, game.currentPlayer);
+        console.log('TIME ELAPSED: ', new Date() - startTime);
+        infoWriter.update();
+        drawer.redraw();
+
+        if (game.isGameOver()) {
+            console.log("GAME OVER!!!!!!!!!");
+            clearInterval(intervalId);
+        }
+    }, 500);
+}
+
+function userComputer(canvas, game, infoWriter, minMaxAlgorithm) {
+    const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
+        infoWriter.update();
+        if (NEXT_PLAYER_RESULTS.includes(result)) {
+            setTimeout(() => {
+                makeComputerMove(minMaxAlgorithm, game, Player.PLAYER_2);
+                infoWriter.update();
+                redrawFunc();
+            }, 10);
+        }
     });
 }
 
@@ -43,18 +95,11 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame) {
 
     const infoWriter = new GameInfoWriter(game);
 
-    const minMaxAlgorithm = new AlphaBetaAlgorithm(new MillInNextMoveHeuristic(boardService), game);
+    const minMaxAlgorithm = new AlphaBetaAlgorithm(new PlayerRemainingPointsHeuristic(), game);
 
-    const drawer = new GameDrawer(canvas, game, (result: GameMoveResult, redrawFunc) => {
-        infoWriter.update();
-        if (NEXT_PLAYER_RESULTS.includes(result)) {
-            setTimeout(() => {
-                makeComputerMove(minMaxAlgorithm, game);
-                infoWriter.update();
-                redrawFunc();
-            }, 10);
-        }
-    });
+    // userComputer(canvas, game, infoWriter, minMaxAlgorithm);
+
+    aiBattle(boardService, game, infoWriter, new GameDrawer(canvas, game, a => a));
 
     infoWriter.update();
 })();
