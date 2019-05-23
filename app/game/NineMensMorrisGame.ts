@@ -30,11 +30,11 @@ export class NineMensMorrisGame {
             millPlayer: null,
             gamePhase: GamePhase.INITIAL,
             prevPhase: GamePhase.INITIAL,
-            playerPoints: {[Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0},
+            playerPoints: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentPlayerMove: Player.PLAYER_1,
             board: InitialGameHelper.initBoard(),
             history: [],
-            destroyedOpponents: {[Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0},
+            destroyedOpponents: { [Player.PLAYER_1]: 0, [Player.PLAYER_2]: 0 },
             currentMove: null,
             winner: null,
         };
@@ -96,7 +96,7 @@ export class NineMensMorrisGame {
             this.boardService.setPlayer(to, fromPlayer);
             this.boardService.setPlayer(from, Player.NO_PLAYER);
 
-            this.movesHistory.addMove({from, to, player: this.currentPlayer});
+            this.movesHistory.addMove({ from, to, player: this.currentPlayer });
         }
     }
 
@@ -177,7 +177,7 @@ export class NineMensMorrisGame {
             case GamePhase.SELECT_POINT_TO_MOVE:
                 const selectable = this.boardService.findPlayerCoordinates(this.currentPlayer);
                 if (!selectable.length) {
-                    this.setGameOver();
+                    this.setGameOver(nextPlayer(this.currentPlayer));
                 }
                 return selectable;
             case GamePhase.MILL:
@@ -196,7 +196,7 @@ export class NineMensMorrisGame {
         this.boardService.setPlayer(point, Player.NO_PLAYER);
 
         if (!this.state.initialHandQueue.length && this.state.playerPoints[playerToRemove] <= POINTS_TO_GAME_OVER) {
-            this.setGameOver();
+            this.setGameOver(this.currentPlayer);
         }
     }
 
@@ -213,8 +213,8 @@ export class NineMensMorrisGame {
         return this.state.currentMove;
     }
 
-    private setGameOver() {
+    private setGameOver(winner: Player) {
         this.setPhase(GamePhase.GAME_OVER);
-        this.state.winner = nextPlayer(this.currentPlayer);
+        this.state.winner = winner;
     }
 }
