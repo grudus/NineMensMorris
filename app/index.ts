@@ -14,7 +14,6 @@ import { PlayerRemainingPointsHeuristic } from './ai/heuristics/PlayerRemainingP
 function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, player: Player) {
     const tree = algorithm.buildGameTree(player);
 
-    console.log(tree.root.getChildren());
 
     if (!tree.root.getChildren().length) {
         console.log('CANNOT MOVE');
@@ -33,7 +32,7 @@ function makeComputerMove(algorithm: GameAlgorithm, game: NineMensMorrisGame, pl
 
     const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
-    console.log("CURRENT PLAYER", player);
+    console.log('CURRENT PLAYER', player);
     console.log(move);
 
     move.movesToValidState.forEach((a: Coordinate) => {
@@ -67,7 +66,7 @@ function aiBattle(
         drawer.redraw();
 
         if (game.isGameOver()) {
-            console.log("GAME OVER!!!!!!!!!");
+            console.log('GAME OVER!!!!!!!!!');
             clearInterval(intervalId);
         }
     }, 500);
@@ -91,7 +90,7 @@ function userComputer(canvas, game, infoWriter, minMaxAlgorithm) {
 
     const boardService = new BoardService();
     const game = new NineMensMorrisGame(new MovesHistory(), boardService);
-    const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+    // const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
     const infoWriter = new GameInfoWriter(game);
 
@@ -99,7 +98,11 @@ function userComputer(canvas, game, infoWriter, minMaxAlgorithm) {
 
     // userComputer(canvas, game, infoWriter, minMaxAlgorithm);
 
-    aiBattle(boardService, game, infoWriter, new GameDrawer(canvas, game, a => a));
-
+    const MockDrawer = () => {
+        return {
+            redraw: () => {},
+        };
+    };
+    aiBattle(boardService, game, infoWriter, MockDrawer());
     infoWriter.update();
 })();
