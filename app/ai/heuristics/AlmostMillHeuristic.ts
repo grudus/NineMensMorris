@@ -38,4 +38,8 @@ export class AlmostMillHeuristic implements GameHeuristic {
         }
         return millPoints + almostMillPoints;
     }
+
+    public name() {
+        return 'ALMOST_MILL';
+    }
 }

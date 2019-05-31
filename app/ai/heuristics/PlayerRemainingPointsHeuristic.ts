@@ -10,4 +10,8 @@ export class PlayerRemainingPointsHeuristic implements GameHeuristic {
         }
         return state.destroyedOpponents[player] - state.destroyedOpponents[nextPlayer(player)];
     }
+
+    public name() {
+        return 'PLAYER_REMAINING';
+    }
 }

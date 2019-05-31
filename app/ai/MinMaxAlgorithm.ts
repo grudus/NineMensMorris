@@ -11,15 +11,24 @@ import { buildNodesToSearch } from './NodeBuilder';
 type BetterEvaluation = (a: number, b: number) => number;
 
 export class MinMaxAlgorithm implements GameAlgorithm {
-    public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame) {}
+    private moves = 0;
+
+    public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame, public depth: number) {}
 
     public buildGameTree(currentPlayer: Player): Tree<GameNodeValue> {
         const initialState = this.game.getState();
-        const depth = this.findOptimalDepth(initialState);
 
         const tree = new Tree<GameNodeValue>({ evaluation: 0, movesToValidState: null });
-        this.minMax(initialState, currentPlayer, currentPlayer, depth, tree.root);
+
+        const timeStart = new Date();
+        this.minMax(initialState, currentPlayer, currentPlayer, this.depth, tree.root);
+        // @ts-ignore
+        const timeElapsed = new Date() - timeStart;
         this.game.resetState(initialState);
+
+        tree.moves = this.moves;
+        tree.time = timeElapsed;
+        this.moves = 0;
         return tree;
     }
 
@@ -35,6 +44,8 @@ export class MinMaxAlgorithm implements GameAlgorithm {
         if (depth === 0 || this.game.isGameOver()) {
             return this.heuristic.calculateBoard(state, Player.PLAYER_2);
         }
+
+        this.moves++;
 
         const _minOrMax = (initialEvaluation: number, betterEvaluation: BetterEvaluation): number => {
             let bestEvaluation = initialEvaluation;
@@ -76,5 +87,9 @@ export class MinMaxAlgorithm implements GameAlgorithm {
             return 3;
         }
         return 4;
+    }
+
+    public name() {
+        return 'MIN_MAX,' + this.heuristic.name();
     }
 }

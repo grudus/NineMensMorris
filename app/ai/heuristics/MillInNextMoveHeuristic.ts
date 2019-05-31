@@ -10,7 +10,6 @@ export class MillInNextMoveHeuristic implements GameHeuristic {
 
     public calculateBoard(state: GameState, player: Player): number {
         if (state.gamePhase === GamePhase.GAME_OVER) {
-            console.log("GAME OVER", state.winner);
             return state.winner === player ? 10_000 : -10_000;
         }
         const opponentPlayer = nextPlayer(player);
@@ -40,5 +39,9 @@ export class MillInNextMoveHeuristic implements GameHeuristic {
         }
 
         return millPoints + additionalPoints;
+    }
+
+    public name() {
+        return 'MILL_NEXT';
     }
 }

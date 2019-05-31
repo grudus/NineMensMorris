@@ -15,16 +15,15 @@ type BetterBeta = (beta: number, evaluation: number) => number;
 export class AlphaBetaAlgorithm implements GameAlgorithm {
     private moves = 0;
 
-    public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame) {}
+    public constructor(private heuristic: GameHeuristic, private game: NineMensMorrisGame, public depth: number) {}
 
     public buildGameTree(maximizingPlayer: Player): Tree<GameNodeValue> {
         this.moves = 0;
         const initialState = this.game.getState();
-        const depth = this.findOptimalDepth(initialState);
         const tree = new Tree<GameNodeValue>({ evaluation: 0, movesToValidState: null });
 
         const timeStart = new Date();
-        this.alphaBeta(initialState, maximizingPlayer, maximizingPlayer, -Infinity, Infinity, depth, tree.root);
+        this.alphaBeta(initialState, maximizingPlayer, maximizingPlayer, -Infinity, Infinity, this.depth, tree.root);
         // @ts-ignore
         const timeElapsed = new Date() - timeStart;
         this.game.resetState(initialState);
@@ -108,5 +107,9 @@ export class AlphaBetaAlgorithm implements GameAlgorithm {
             return 3;
         }
         return 4;
+    }
+
+    public name() {
+        return 'ALPHA_BETA,' + this.heuristic.name();
     }
 }
